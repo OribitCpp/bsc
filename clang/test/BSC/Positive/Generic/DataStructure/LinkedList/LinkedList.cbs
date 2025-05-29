@@ -1,0 +1,121 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -rewrite-bsc -line %s -o %t-rwline.c
+// RUN: FileCheck --input-file=%t-rwline.c %s --check-prefix=CHECK-L
+// expected-no-diagnostics
+
+#include <stdio.h>
+#include <stdlib.h>
+
+struct ListNode<T> {
+    T data;
+    struct ListNode<T> *next;
+};
+
+struct LinkedList<T> {
+    struct ListNode<T> *head;
+};
+
+void struct LinkedList<T>::init(struct LinkedList<T> *this) {
+    this->head = malloc(sizeof(struct ListNode<T>));
+    this->head->next = NULL;
+}
+
+void struct LinkedList<T>::insert(struct LinkedList<T> *this, T data) {
+    struct ListNode<T> *newNode = malloc(sizeof(struct ListNode<T>));
+    newNode->data = data;
+    newNode->next = this->head->next;
+    this->head->next = newNode;
+}
+
+void struct LinkedList<T>::delete(struct LinkedList<T> *this, T data) {
+    struct ListNode<T> *p = this->head->next;
+    struct ListNode<T> *pre = this->head;
+    while(p != NULL) {
+        if (p->data == data) {
+            pre->next = p->next;
+            free(p);
+            return;
+        }
+        pre = p;
+        p = p->next;
+    }
+}
+
+void struct LinkedList<T>::destroy(struct LinkedList<T> *this) {
+    struct ListNode<T> *p = this->head;
+    while(p != NULL) {
+        struct ListNode<T> *q = p->next;
+        free(p);
+        p = q;
+    }
+}
+
+// CHECK-L: #line 22 "{{.*}}.cbs"
+// CHECK-L-NEXT: static void struct_LinkedList_int_init(struct LinkedList_int *this) {
+// CHECK-L-NEXT:   this->head = malloc(sizeof(struct ListNode_int));
+// CHECK-L-NEXT:   this->head->next = ((void *)0);
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 27 "{{.*}}.cbs"
+// CHECK-L-NEXT: static void struct_LinkedList_int_insert(struct LinkedList_int *this, int data) {
+// CHECK-L-NEXT:   struct ListNode_int *newNode = malloc(sizeof(struct ListNode_int));
+// CHECK-L-NEXT:   newNode->data = data;
+// CHECK-L-NEXT:   newNode->next = this->head->next;
+// CHECK-L-NEXT:   this->head->next = newNode;
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 34 "{{.*}}.cbs"
+// CHECK-L-NEXT: static void struct_LinkedList_int_delete(struct LinkedList_int *this, int data) {
+// CHECK-L-NEXT:   struct ListNode_int *p = this->head->next;
+// CHECK-L-NEXT:   struct ListNode_int *pre = this->head;
+// CHECK-L-NEXT:   while (p != ((void *)0)) 
+// CHECK-L-NEXT:   {
+// CHECK-L-NEXT:     if (p->data == data) {
+// CHECK-L-NEXT:       pre->next = p->next;
+// CHECK-L-NEXT:       free(p);
+// CHECK-L-NEXT:       return;
+// CHECK-L-NEXT:     }
+// CHECK-L-NEXT:     pre = p;
+// CHECK-L-NEXT:     p = p->next;
+// CHECK-L-NEXT:   }
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 48 "{{.*}}.cbs"
+// CHECK-L-NEXT: static void struct_LinkedList_int_destroy(struct LinkedList_int *this) {
+// CHECK-L-NEXT:   struct ListNode_int *p = this->head;
+// CHECK-L-NEXT:   while (p != ((void *)0)) 
+// CHECK-L-NEXT:   {
+// CHECK-L-NEXT:     struct ListNode_int *q = p->next;
+// CHECK-L-NEXT:     free(p);
+// CHECK-L-NEXT:     p = q;
+// CHECK-L-NEXT:   }
+// CHECK-L-NEXT: }
+
+
+int main() {
+    struct LinkedList<int> L;
+    L.init();
+    for(int i = 0; i < 10; i++) {
+        L.insert(i);
+    }
+    struct ListNode<int> *p = L.head->next;
+    while(p != NULL) {
+        printf("%d ", p->data);
+        p = p->next;
+    }
+    printf("\n");
+
+    L.delete(2);
+    L.delete(5);
+    p = L.head->next;
+    while(p != NULL) {
+        printf("%d ", p->data);
+        p = p->next;
+    }
+    L.destroy();
+    return 0;
+}

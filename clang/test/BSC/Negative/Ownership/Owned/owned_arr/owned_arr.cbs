@@ -1,0 +1,23 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+
+typedef struct A {
+    owned int a;
+} SA;
+
+void test() {
+    owned int arr1[10]; // expected-error {{type of array cannot qualified by 'owned}}
+    SA arr2[3];         // expected-error {{type of array cannot qualified by 'owned'(even indirectly), 'SA' (aka 'struct A') contains 'owned' type}}
+    struct A arr[4];    // expected-error {{type of array cannot qualified by 'owned'(even indirectly), 'struct A' contains 'owned' type}}
+    owned int* arr3[2];
+    SA* arr4[3];
+    return;
+}
+
+void test2() {
+    int arr[3];
+    int* owned p1 = &arr[1];    // expected-error {{incompatible owned types, cannot cast 'int *' to 'int *owned'}}
+}
+
+struct B {
+    owned int arr1[3];  // expected-error {{type of array cannot qualified by 'owned'}}
+};

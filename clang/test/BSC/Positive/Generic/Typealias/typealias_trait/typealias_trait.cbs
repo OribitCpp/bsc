@@ -1,0 +1,73 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+trait F {
+    int foo(This* this);
+};
+typedef MyF1 = trait F;
+typedef trait F MyF2;
+typedef MyF3 = MyF1;
+typedef MyF2 MyF4;
+int int::foo(This* this) {
+    return *this;
+}
+impl MyF1 for int;
+impl MyF2 for int;
+impl MyF3 for int;
+impl MyF4 for int;
+
+trait G<T> {
+    T foo(This* this);
+};
+
+typedef MyG1 = trait G<int>;
+impl MyG1 for int;
+typedef trait G<int> MyG2;
+impl MyG2 for int;
+typedef MyG3<T> = trait G<T>;
+impl MyG3<int> for int;
+
+typedef MyG4 = MyG1;
+impl MyG4 for int;
+typedef MyG2 MyG5;
+impl MyG5 for int;
+typedef MyG6<T> = MyG3<T>;
+impl MyG6<int> for int;
+typedef MyG7<T> = MyG1;
+impl MyG7<int> for int;
+typedef MyG8<T> = MyG3<int>;
+impl MyG8<int> for int;
+
+int main() {
+    int a = 5;
+    MyF1* f1 = &a;
+    f1->foo();
+    MyF2* f2 = &a;
+    f2->foo();
+    MyF3* f3 = &a;
+    f3->foo();
+    MyF4* f4 = &a;
+    f4->foo();
+
+    MyG1* g1 = &a;
+    g1->foo();
+    MyG2* g2 = &a;
+    g2->foo();
+    MyG3<int>* g3 = &a;
+    g3->foo();
+
+    MyG4* g4 = &a;
+    g4->foo();
+    MyG5* g5 = &a;
+    g5->foo();
+    MyG6<int>* g6 = &a;
+    g6->foo();
+    MyG7<int>* g7 = &a;
+    g7->foo();  
+    MyG8<int>* g8 = &a;
+    g8->foo();  
+    return 0;
+}

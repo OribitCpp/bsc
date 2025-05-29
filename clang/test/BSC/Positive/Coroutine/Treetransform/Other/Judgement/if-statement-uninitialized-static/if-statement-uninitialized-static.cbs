@@ -1,0 +1,38 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../../../lib/Headers/bsc_include/future.hbs -o %T/future.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include "future.hbs"
+#include <stdlib.h>
+
+async int read(int a) {
+  return 0;
+}
+
+static async int f() {
+    int ret;
+    if (1) {
+        ret = await read(0);
+    } else {
+        ret = await read(0);
+    }
+    return ret;
+}
+
+int main() {
+  struct _Futuref this = f();
+  this.poll();
+  this.free();
+  return 0;
+}
+
+// CHECK: struct _Futuref __f(void) {
+// CHECK-NEXT:     struct _Futuref fi = {};
+// CHECK-NEXT:     fi.__future_state = 0;
+// CHECK-NEXT:     return fi;
+// CHECK-NEXT: }

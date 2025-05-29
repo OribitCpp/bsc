@@ -1,0 +1,75 @@
+// Test without serialization:
+// RUN: %clang_cc1 -triple x86_64-unknown-unknown -ast-dump %s \
+// RUN: | FileCheck --strict-whitespace %s
+//
+// Test with serialization:
+// RUN: %clang_cc1 -triple x86_64-unknown-unknown -emit-pch -o %t %s
+// RUN: %clang_cc1 -x bsc -triple x86_64-unknown-unknown -include-pch %t -ast-dump-all /dev/null \
+// RUN: | sed -e "s/ <undeserialized declarations>//" -e "s/ imported//" \
+// RUN: | FileCheck --strict-whitespace %s
+
+struct MyStruct<T1, T2> {
+  T1 res;
+};
+// CHECK: ClassTemplateDecl 0x{{[^ ]*}} <{{.*}}:[[@LINE-3]]:1, line:[[@LINE-1]]:1> line:[[@LINE-3]]:8 MyStruct
+// CHECK-NEXT: TemplateTypeParmDecl 0x{{[^ ]*}} <col:17> col:17 referenced class depth 0 index 0 T1
+// CHECK-NEXT: TemplateTypeParmDecl 0x{{[^ ]*}} <col:21> col:21 class depth 0 index 1 T2
+// CHECK-NEXT: RecordDecl 0x{{[^ ]*}} <col:1, line:[[@LINE-4]]:1> line:[[@LINE-6]]:8 struct MyStruct definition
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <line:[[@LINE-6]]:3, col:6> col:6 res 'T1'
+// CHECK-NEXT: ClassTemplateSpecializationDecl 0x{{[^ ]*}} <line:[[@LINE-8]]:1, line:[[@LINE-6]]:1> line:[[@LINE-8]]:8 struct MyStruct definition
+// CHECK-NEXT: DefinitionData pass_in_registers empty aggregate standard_layout trivially_copyable pod trivial literal has_constexpr_non_copy_move_ctor can_const_default_init
+// CHECK-NEXT: DefaultConstructor exists trivial constexpr needs_implicit defaulted_is_constexpr
+// CHECK-NEXT: CopyConstructor simple trivial has_const_param needs_implicit implicit_has_const_param
+// CHECK-NEXT: MoveConstructor exists simple trivial needs_implicit
+// CHECK-NEXT: CopyAssignment simple trivial has_const_param needs_implicit implicit_has_const_param
+// CHECK-NEXT: MoveAssignment exists simple trivial needs_implicit
+// CHECK-NEXT: Destructor simple irrelevant trivial needs_implicit
+// CHECK-NEXT: TemplateArgument type 'int'
+// CHECK-NEXT: BuiltinType 0x{{[^ ]*}} 'int'
+// CHECK-NEXT: TemplateArgument type 'float'
+// CHECK-NEXT: BuiltinType 0x{{[^ ]*}} 'float'
+// CHECK-NEXT: BSCMethodDecl 0x{{[^ ]*}} <line:[[@LINE+10]]:1, line:[[@LINE+12]]:1> line:[[@LINE+10]]:50 used foo 'struct MyStruct<int, float> (struct MyStruct<int, float> *)'
+// CHECK-NEXT: ParmVarDecl 0x{{[^ ]*}} <col:54, col:79> col:79 used this 'struct MyStruct<int, float> *'
+// CHECK-NEXT: CompoundStmt 0x{{[^ ]*}} <col:85, line:[[@LINE+10]]:1>
+// CHECK-NEXT: ReturnStmt 0x{{[^ ]*}} <line:[[@LINE+8]]:3, col:11>
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:10, col:11> 'struct MyStruct<int, float>':'struct MyStruct<int, float>' <NoOp>
+// CHECK-NEXT: UnaryOperator 0x{{[^ ]*}} <col:10, col:11> 'struct MyStruct<int, float>':'struct MyStruct<int, float>' lvalue prefix '*' cannot overflow
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:11> 'struct MyStruct<int, float> *' <LValueToRValue>
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:11> 'struct MyStruct<int, float> *' lvalue ParmVar 0x{{[^ ]*}} 'this' 'struct MyStruct<int, float> *'
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <line:[[@LINE-27]]:3, col:6> col:6 res 'int':'int'
+
+struct MyStruct<T1, T2> struct MyStruct<T1, T2>::foo(struct MyStruct<T1, T2> *this) {
+  return *this;
+}
+// CHECK: BSCMethodDecl 0x{{[^ ]*}} parent 0x{{[^ ]*}} <line:[[@LINE-3]]:1, line:[[@LINE-1]]:1> line:[[@LINE-3]]:50 foo 'struct MyStruct<T1, T2> (struct MyStruct<T1, T2> *)'
+// CHECK-NEXT: ParmVarDecl 0x{{[^ ]*}} <col:54, col:79> col:79 referenced this 'struct MyStruct<T1, T2> *'
+// CHECK-NEXT: CompoundStmt 0x{{[^ ]*}} <col:85, line:[[@LINE-3]]:1>
+// CHECK-NEXT: ReturnStmt 0x{{[^ ]*}} <line:[[@LINE-5]]:3, col:11>
+// CHECK-NEXT: UnaryOperator 0x{{[^ ]*}} <col:10, col:11> '<dependent type>' prefix '*' cannot overflow
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:11> 'struct MyStruct<T1, T2> *' lvalue ParmVar 0x{{[^ ]*}} 'this' 'struct MyStruct<T1, T2> *'
+
+int main() {
+  struct MyStruct<int, float> s = {.res = 1};
+  s.foo();
+  struct MyStruct<int, float>::foo(&s);
+  return 0;  
+}
+// CHECK: FunctionDecl 0x{{[^ ]*}} <line:[[@LINE-6]]:1, line:[[@LINE-1]]:1> line:[[@LINE-6]]:5 main 'int (void)'
+// CHECK-NEXT: CompoundStmt 0x{{[^ ]*}} <col:12, line:[[@LINE-2]]:1>
+// CHECK-NEXT: DeclStmt 0x{{[^ ]*}} <line:[[@LINE-7]]:10, col:45>
+// CHECK-NEXT: VarDecl 0x{{[^ ]*}} <col:10, col:44> col:31 used s 'MyStruct<int, float>':'struct MyStruct<int, float>' cinit
+// CHECK-NEXT: InitListExpr 0x{{[^ ]*}} <col:35, col:44> 'MyStruct<int, float>':'struct MyStruct<int, float>'
+// CHECK-NEXT: IntegerLiteral 0x{{[^ ]*}} <col:43> 'int' 1
+// CHECK-NEXT: CallExpr 0x{{[^ ]*}} <line:[[@LINE-10]]:3, col:9> 'struct MyStruct<int, float>':'struct MyStruct<int, float>'
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:3, col:5> 'struct MyStruct<int, float> (*)(struct MyStruct<int, float> *)' <FunctionToPointerDecay>
+// CHECK-NEXT: MemberExpr 0x{{[^ ]*}} <col:3, col:5> 'struct MyStruct<int, float> (struct MyStruct<int, float> *)' lvalue .foo 0x{{[^ ]*}}
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:3> 'MyStruct<int, float>':'struct MyStruct<int, float>' lvalue Var 0x{{[^ ]*}} 's' 'MyStruct<int, float>':'struct MyStruct<int, float>'
+// CHECK-NEXT: UnaryOperator 0x{{[^ ]*}} <<invalid sloc>, col:3> 'struct MyStruct<int, float> *' prefix '&' cannot overflow
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:3> 'MyStruct<int, float>':'struct MyStruct<int, float>' lvalue Var 0x{{[^ ]*}} 's' 'MyStruct<int, float>':'struct MyStruct<int, float>'
+// CHECK-NEXT: CallExpr 0x{{[^ ]*}} <line:[[@LINE-15]]:10, col:38> 'struct MyStruct<int, float>':'struct MyStruct<int, float>'
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:10, col:32> 'struct MyStruct<int, float> (*)(struct MyStruct<int, float> *)' <FunctionToPointerDecay>
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:10, col:32> 'struct MyStruct<int, float> (struct MyStruct<int, float> *)' BSCMethod 0x{{[^ ]*}} 'foo' 'struct MyStruct<int, float> (struct MyStruct<int, float> *)'
+// CHECK-NEXT: UnaryOperator 0x{{[^ ]*}} <col:36, col:37> 'MyStruct<int, float> *' prefix '&' cannot overflow
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:37> 'MyStruct<int, float>':'struct MyStruct<int, float>' lvalue Var 0x{{[^ ]*}} 's' 'MyStruct<int, float>':'struct MyStruct<int, float>'
+// CHECK-NEXT: ReturnStmt 0x{{[^ ]*}} <line:[[@LINE-19]]:3, col:10>
+// CHECK-NEXT: IntegerLiteral 0x{{[^ ]*}} <col:10> 'int' 0

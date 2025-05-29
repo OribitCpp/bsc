@@ -1,0 +1,17 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+
+static int int::increase() {
+    return 0;
+}
+
+int main() { return 0; }
+
+// CHECK:      static int int_increase(void) {
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int main() { return 0; }

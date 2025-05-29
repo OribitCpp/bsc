@@ -1,0 +1,45 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../lib/Headers/bsc_include/future.hbs -o %T/future.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include "future.hbs"
+#include <stdlib.h>
+
+async int read(int a) {
+  return 0;
+}
+
+async int f(int start) {
+    int a = 3;
+    if (a == 3)
+        for(int i=0;i<1; i++)
+            a = await read(1);
+    else if (a == 4) {
+        if (a == 4)
+            a = await read(1);
+    }
+    else
+        a = await read(1);
+
+    int b = 0;
+    a = await read(2);
+    while (b != a)
+        b = await read(2);
+
+    a = await read(3);
+    do
+        b = await read(3);
+    while (b != a);
+
+    return start;
+}
+
+int main() {
+  trait Future<int> *this = f(1);
+  this->poll();
+  return 0;
+}

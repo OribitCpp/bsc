@@ -1,0 +1,50 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+
+enum E {
+    X3,
+    X4
+};
+
+int enum E::getA(enum E* this) { 
+  return X3;
+}
+
+int int::getA(int* this) { 
+  return X4;
+}
+
+int main() {
+  int a = 1;
+  a.getA();
+  enum E foo = X3; 
+  foo.getA();
+  return foo.getA() + a.getA() - 1;
+}
+
+// CHECK: enum E {
+// CHECK-NEXT:     X3,
+// CHECK-NEXT:     X4
+// CHECK-NEXT: };
+
+// CHECK: int enum_E_getA(enum E *this) {
+// CHECK-NEXT:   return X3;
+// CHECK-NEXT: }
+
+// CHECK: int int_getA(int *this) {
+// CHECK-NEXT:   return X4;
+// CHECK-NEXT: }
+
+// CHECK: int main(void) {
+// CHECK-NEXT:   int a = 1;
+// CHECK-NEXT:   int_getA(&a);
+// CHECK-NEXT:   enum E foo = X3;
+// CHECK-NEXT:   enum_E_getA(&foo);
+// CHECK-NEXT:   return enum_E_getA(&foo) + int_getA(&a) - 1;
+// CHECK-NEXT: }

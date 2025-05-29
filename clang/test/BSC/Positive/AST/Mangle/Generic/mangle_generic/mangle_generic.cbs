@@ -1,0 +1,26 @@
+// RUN: %clang_cc1 %s -emit-llvm -o - | FileCheck %s
+// RUN: %clang %s -g -o %test.output
+// RUN: %test.output
+// expected-no-diagnostics
+struct Person<T1, T2>{
+  char name[32];
+  T1 age;
+  T2 height;
+};
+
+// CHECK: define {{.*}} @struct_Person_int_double_getAge
+int struct Person<T1, T2>::getAge(struct Person<T1, T2>* this) {
+  return this->age;
+}
+
+// CHECK: define {{.*}} @struct_Person_int_double_getHeight
+double struct Person<T1, T2>::getHeight(struct Person<T1, T2>* this, T2 f) {
+  return this->height + f;
+}
+
+int main() {
+  struct Person<int, double> p = {"John", 30, 180.5};
+  int age = p.getAge();
+  double height = p.getHeight(1.5);
+  return 0;
+}

@@ -1,0 +1,168 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -rewrite-bsc -line %s -o %t-rwline.c
+// RUN: FileCheck --input-file=%t-rwline.c %s --check-prefix=CHECK-L
+// expected-no-diagnostics
+
+#include<stdio.h>
+#include<stdlib.h>
+
+struct Student {
+    char *name;
+    int age;
+};
+
+struct Array<T> {
+    T *data;
+    int size;
+    int capacity;
+};
+
+// CHECK-L: #line 25 "{{.*}}.cbs"
+void struct Array<T>::init(struct Array<T> *this, int capacity) { // warning: template argument uses local type 'struct Strudent'
+    this->data = malloc(sizeof(T) * capacity);
+    this->size = 0;
+    this->capacity = capacity;
+}
+
+// CHECK-L: #line 32 "{{.*}}.cbs"
+void struct Array<T>::destroy(struct Array<T> *this) {
+    if (this)
+        free(this->data);
+}
+
+int struct Array<T>::isEmpty(struct Array<T> *this) {
+    return this->size == 0;
+}
+
+// CHECK-L: #line 42 "{{.*}}.cbs"
+int struct Array<T>::isFull(struct Array<T> *this) {
+    return this->size == this->capacity;
+}
+
+// CHECK-L: #line 47 "{{.*}}.cbs"
+void struct Array<T>::append(struct Array<T> *this, T value) {
+    if (this->isFull()) {
+        printf("the array is full!\n");
+        exit(1);
+    }
+    this->data[this->size++] = value;
+}
+
+// CHECK-L: #line 56 "{{.*}}.cbs"
+void struct Array<T>::set(struct Array<T> *this, int index, T value) {
+    if (index < 0 || index >= this->size) {
+        printf("index out of range!\n");
+        exit(1);
+    }
+    this->data[index] = value;
+}
+
+// CHECK-L: #line 65 "{{.*}}.cbs"
+T struct Array<T>::get(struct Array<T> *this, int index) {
+    if (index < 0 || index >= this->size) {
+        printf("index out of range!\n");
+        exit(1);
+    }
+    return this->data[index];
+}
+
+// CHECK-L: #line 74 "{{.*}}.cbs"
+void struct Array<T>::quickSort(struct Array<T> *this, int left, int right, _Bool (*compare)(T, T)) {
+    if (left >= right) 
+        return;
+    int i = left, j = right;
+    T pivot = this->data[left];
+    while (i < j) {
+        while(i < j && compare(this->data[j], pivot)) {
+            j--;
+        }
+        this->data[i] = this->data[j];
+        while (i < j && compare(pivot, this->data[i])) {
+            i++;
+        }
+        this->data[j] = this->data[i];
+    }
+    this->data[i] = pivot;
+    this->quickSort(left, i-1, compare);
+    this->quickSort(i + 1, right, compare);
+}
+
+// CHECK-L: #line 95 "{{.*}}.cbs"
+int struct Array<T>::binarySearch(struct Array<T> *this, T target, _Bool (*compare)(T, T), _Bool (*equal)(T, T)) {
+    int left = 0, right = this->size - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (equal(this->data[mid], target)) {
+            return mid;
+        } else if (compare(target, this->data[mid])) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    return -1;
+}
+
+_Bool compareStudent(struct Student s1, struct Student s2) {
+    return s1.age >= s2.age;
+}
+
+_Bool compareInt(int a, int b) {
+    return a >= b;
+}
+
+_Bool equalInt(int a, int b) {
+    return a == b;
+}
+
+int main() {
+    struct Array<int> arr;
+    arr.init(10);
+    for (int i = 0; i < 10; i++) {
+        arr.append(i);
+    }
+    arr.set(5, 0);
+    for (int i = 0; i < arr.size; i++) {
+        printf("%d ", arr.get(i));
+    }
+    printf("\n");
+
+    arr.quickSort(0, arr.size - 1, compareInt);
+    for (int i = 0; i < arr.size; i++) {
+        printf("%d ", arr.get(i));
+    }
+    printf("\n");
+
+    int target = 8;
+    int index = arr.binarySearch(target, compareInt, equalInt);
+    if (index == -1) {
+        printf("Target not found");
+    } else {
+        printf("Target found at index %d", index);
+    }
+    arr.destroy();
+
+    struct Array<struct Student> arr1;
+    arr1.init(3);
+    struct Student a = {.name = "Jonh", .age = 20};
+    struct Student b = {.name = "Mary", .age = 18};
+    struct Student c = {.name = "Lily", .age = 26};
+    arr1.append(a);
+    arr1.append(b);
+    arr1.append(c);
+    for (int i = 0; i < arr1.size; i++) {
+        printf("name: %s, age: %d\n", arr1.get(i).name, arr1.get(i).age);
+    }
+    printf("\n");
+
+    arr1.quickSort(0, arr1.size - 1, compareStudent);
+    for (int i = 0; i < arr1.size; i++) {
+        printf("name: %s, age: %d\n", arr1.get(i).name, arr1.get(i).age);
+    }
+    arr1.destroy();
+    return 0;
+}

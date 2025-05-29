@@ -1,0 +1,4 @@
+// RUN: %clang -rewrite-bsc %s -Wl,rpath-link=x 2>&1 | FileCheck %s
+// CHECK: warning: -Wl,rpath-link=x: 'linker' input unused
+
+int main() { return 0; }

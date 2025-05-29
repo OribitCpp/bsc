@@ -1,0 +1,49 @@
+// RUN: %clang %s -o %test.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../../lib/Headers/bsc_include/future.hbs -o %T/future.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// expected-no-diagnostics
+
+// since it's a recursive call, we will get a segv if we run it.
+
+// Test without serialization:
+// RUN: %clang_cc1 -triple x86_64-unknown-unknown \
+// RUN: -internal-isystem  %S/../../../../../../../lib/Headers/bsc_include \
+// RUN: -internal-externc-isystem /usr/include/x86_64-linux-gnu \
+// RUN: -internal-externc-isystem /include -internal-externc-isystem /usr/include -ast-dump %s \
+// RUN: | FileCheck --strict-whitespace %s
+//
+// Test with serialization:
+// RUN: %clang_cc1 -triple x86_64-unknown-unknown \
+// RUN: -internal-isystem  %S/../../../../../../../lib/Headers/bsc_include \
+// RUN: -internal-externc-isystem /usr/include/x86_64-linux-gnu \
+// RUN: -internal-externc-isystem /include -internal-externc-isystem /usr/include -emit-pch -o %t %s
+// RUN: %clang_cc1 -x bsc -triple x86_64-unknown-unknown \
+// RUN: -internal-externc-isystem /usr/include/x86_64-linux-gnu \
+// RUN: -internal-externc-isystem /include -internal-externc-isystem /usr/include -include-pch %t -ast-dump-all /dev/null \
+// RUN: | sed -e "s/ <undeserialized declarations>//" -e "s/ imported//" \
+// RUN: | FileCheck --strict-whitespace %s
+
+#include "future.hbs"
+#include <stdlib.h>
+
+async int f() {
+    int a = await f();
+    return a;
+}
+
+
+// Declaration
+// CHECK: |-FunctionDecl {{.*}} <line:30:1, col:11> col:11 __f 'struct _Futuref *(void)'
+
+// Make sure that function `__f` has body.
+// CHECK: |-FunctionDecl {{.*}} <col:1, line:33:1> line:30:11 used __f 'struct _Futuref *(void)'
+// CHECK-NEXT: | `-CompoundStmt {{.*}} <col:1, line:33:1>
+// CHECK-NEXT: |   |-DeclStmt {{.*}} <line:30:1, line:33:1>
+
+int main() {
+  trait Future<int>* this = f();
+  this->poll();
+  this->free();
+  return 0;
+}

@@ -1,0 +1,9 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+int void::getA() { // expected-error {{variable has incomplete type 'void'}}
+  return 0;
+}
+
+int main() {
+  return 0;
+}

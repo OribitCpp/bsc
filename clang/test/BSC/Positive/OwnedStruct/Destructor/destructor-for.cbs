@@ -1,0 +1,70 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+int y = 0;
+owned struct A {
+public:
+  int x;
+  ~A(A this) { y++; }
+};
+int test_for() {
+  int n = 1;
+  for (int i = 0; i < 10; i++) {
+    A aaa = {};
+    if (n == 6) {
+      break;
+    }
+    n++;
+  }
+  return 0;
+}
+
+int test_for1() {
+  int n = 1;
+  for (int i = 0; i < 6; i++)
+    A aaa = {};
+
+  return 0;
+}
+
+int test_for2() {
+  A aaa = {};
+  for (int i = 0; i < 6; i++)
+    return 2;
+
+  return 0;
+}
+
+int test_for3() {
+  A aaa = {};
+  for (int i = ({0;}); i < 6; i++) {
+    if (i == 3) {
+      return 2;
+    }
+  }
+
+  return 0;
+}
+
+int main() {
+  test_for();
+  if (y != 6) {
+    return 1;
+  }
+  test_for1();
+  if (y != 12) {
+    return 2;
+  }
+  test_for2();
+  if (y != 13) {
+    return 3;
+  }
+  test_for3();
+  if (y != 14) {
+    return 4;
+  }
+  return 0;
+}

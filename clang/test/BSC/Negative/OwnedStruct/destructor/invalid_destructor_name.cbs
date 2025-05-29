@@ -1,0 +1,24 @@
+// RUN: %clang_cc1 -verify %s
+
+struct B
+{
+
+};
+
+owned struct A {    
+ ~B(A this) { // expected-error {{expected the owned struct name after '~' to name the enclosing owned struct}}
+  }
+
+};
+
+owned struct C<T> {    
+ ~C<T>(C<T> this) { // expected-error {{expected the owned struct name after '~' to name the enclosing owned struct}}
+  }
+
+};
+
+owned struct D<T> {    
+ ~B(D<T> this) { // expected-error {{expected the owned struct name after '~' to name the enclosing owned struct}}
+  }
+
+};

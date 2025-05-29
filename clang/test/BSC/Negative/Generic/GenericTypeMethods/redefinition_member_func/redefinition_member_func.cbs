@@ -1,0 +1,13 @@
+// RUN: %clang_cc1 -verify %s
+
+struct MyStruct<T> {
+  T res;
+};
+
+int struct MyStruct<T>::foo(struct MyStruct<T> *this, int a) { // expected-note {{previous definition is here}}
+  return a;
+}
+
+int struct MyStruct<T>::foo(struct MyStruct<T> *this, int a) { // expected-error {{redefinition of 'foo'}} 
+  return 0;
+}

@@ -1,0 +1,14 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F {
+  int foo(This *this);
+};
+trait G {};
+
+void test() {
+  trait G *g;
+  trait F *q = g; // expected-error {{expected a pointer type which has implemented 'trait F', found 'struct __Trait_G'}}
+  trait F *q1 = (trait F *)g; // expected-error {{expected a pointer type which has implemented 'trait F', found 'struct __Trait_G'}}
+  q = g; // expected-error {{assigning to 'struct __Trait_F' from incompatible type 'trait G *'}}
+  q1 = (trait F *)g; // expected-error {{assigning to 'struct __Trait_F' from incompatible type 'trait G *'}}
+}

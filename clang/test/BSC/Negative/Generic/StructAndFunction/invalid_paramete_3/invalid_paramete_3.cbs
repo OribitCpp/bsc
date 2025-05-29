@@ -1,0 +1,11 @@
+// RUN: %clang_cc1 -verify %s
+
+T foo<T(), int B>(T a)          /* expected-error {{unknown type name 'T'}}
+                                   expected-error {{expected ';' after top level declarator}} */ 
+{
+  return a;
+}
+
+int main() {
+  return 0;
+}

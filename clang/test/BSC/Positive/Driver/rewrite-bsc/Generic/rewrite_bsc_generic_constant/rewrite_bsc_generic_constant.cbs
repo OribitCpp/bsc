@@ -1,0 +1,249 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+typedef int MyInt;
+
+int foo1<T, int N>() {
+    return N;
+}
+unsigned int foo2<T, unsigned int N>() {
+    return N;
+}
+signed long long int foo3<T, signed long long int N>() {
+    return N;    
+}
+MyInt foo4<T, MyInt N>() {
+    return N;
+}
+int foo5<int N>() {
+    return N;
+}
+int foo6<int N, T>() {
+    return N;
+}
+struct S1<T, int N>{};
+struct S2<T, unsigned int N>{};
+struct S3<T, signed long long int N>{};
+struct S4<T, MyInt N>{};
+struct S5<int N>{};
+struct S6<int N, T>{};
+void struct S1<T, int N>::bar(This* this) {}
+void struct S2<T, unsigned int N>::bar(This* this) {}
+void struct S3<T, signed long long int N>::bar(This* this) {}
+void struct S4<T, MyInt N>::bar(This* this) {}
+void struct S5<int N>::bar(This* this) {}
+void struct S6<int N, T>::bar(This* this) {}
+
+int main() {
+    int a1_0 = foo1<int, 5>();
+    int a1_1 = foo1<int, -5>();
+    int a2 = foo2<int, 5>();
+    int a3 = foo3<int, 5>();
+    int a4_0 = foo4<int, 5>();
+    int a4_1 = foo4<int, -5>();
+    int a5_0 = foo5<5>();
+    int a5_1 = foo5<-5>();
+    int a6_0 = foo6<5, int>();
+    int a6_1 = foo6<-5, int>();    
+    struct S1<int, 5> s1_0;
+    struct S1<int, -5> s1_1;
+    struct S2<int, 5> s2;
+    struct S3<int, 5> s3;
+    struct S4<int, 5> s4_0;
+    struct S4<int, -5> s4_1;
+    struct S5<5> s5_0;
+    struct S5<-5> s5_1;
+    struct S6<5, int> s6_0;
+    struct S6<-5, int> s6_1;    
+    s1_0.bar();
+    s1_1.bar();
+    s2.bar();
+    s3.bar();
+    s4_0.bar();
+    s4_1.bar();
+    s5_0.bar();
+    s5_1.bar();
+    s6_0.bar();
+    s6_1.bar();
+    return 0;
+}
+
+// CHECK: typedef int MyInt;
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S1_int_5 {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S1_int_n5 {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S2_int_5 {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S3_int_5 {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S4_int_5 {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S4_int_n5 {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S5_5 {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S5_n5 {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S6_5_int {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S6_n5_int {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo1_int_5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo1_int_n5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static unsigned int foo2_int_5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static long long foo3_int_5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static MyInt foo4_int_5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static MyInt foo4_int_n5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo5_5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo5_n5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo6_5_int(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo6_n5_int(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S1_int_5_bar(struct S1_int_5 *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S1_int_n5_bar(struct S1_int_n5 *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S2_int_5_bar(struct S2_int_5 *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S3_int_5_bar(struct S3_int_5 *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S4_int_5_bar(struct S4_int_5 *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S4_int_n5_bar(struct S4_int_n5 *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S5_5_bar(struct S5_5 *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S5_n5_bar(struct S5_n5 *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S6_5_int_bar(struct S6_5_int *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S6_n5_int_bar(struct S6_n5_int *this);
+// CHECK-EMPTY:
+// CHECK-NEXT:int main(void) {
+// CHECK-NEXT:    int a1_0 = foo1_int_5();
+// CHECK-NEXT:    int a1_1 = foo1_int_n5();
+// CHECK-NEXT:    int a2 = foo2_int_5();
+// CHECK-NEXT:    int a3 = foo3_int_5();
+// CHECK-NEXT:    int a4_0 = foo4_int_5();
+// CHECK-NEXT:    int a4_1 = foo4_int_n5();
+// CHECK-NEXT:    int a5_0 = foo5_5();
+// CHECK-NEXT:    int a5_1 = foo5_n5();
+// CHECK-NEXT:    int a6_0 = foo6_5_int();
+// CHECK-NEXT:    int a6_1 = foo6_n5_int();
+// CHECK-NEXT:    struct S1_int_5 s1_0;
+// CHECK-NEXT:    struct S1_int_n5 s1_1;
+// CHECK-NEXT:    struct S2_int_5 s2;
+// CHECK-NEXT:    struct S3_int_5 s3;
+// CHECK-NEXT:    struct S4_int_5 s4_0;
+// CHECK-NEXT:    struct S4_int_n5 s4_1;
+// CHECK-NEXT:    struct S5_5 s5_0;
+// CHECK-NEXT:    struct S5_n5 s5_1;
+// CHECK-NEXT:    struct S6_5_int s6_0;
+// CHECK-NEXT:    struct S6_n5_int s6_1;
+// CHECK-NEXT:    struct_S1_int_5_bar(&s1_0);
+// CHECK-NEXT:    struct_S1_int_n5_bar(&s1_1);
+// CHECK-NEXT:    struct_S2_int_5_bar(&s2);
+// CHECK-NEXT:    struct_S3_int_5_bar(&s3);
+// CHECK-NEXT:    struct_S4_int_5_bar(&s4_0);
+// CHECK-NEXT:    struct_S4_int_n5_bar(&s4_1);
+// CHECK-NEXT:    struct_S5_5_bar(&s5_0);
+// CHECK-NEXT:    struct_S5_n5_bar(&s5_1);
+// CHECK-NEXT:    struct_S6_5_int_bar(&s6_0);
+// CHECK-NEXT:    struct_S6_n5_int_bar(&s6_1);
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo1_int_5(void) {
+// CHECK-NEXT:    return 5;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo1_int_n5(void) {
+// CHECK-NEXT:    return -5;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static unsigned int foo2_int_5(void) {
+// CHECK-NEXT:    return 5U;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static long long foo3_int_5(void) {
+// CHECK-NEXT:    return 5LL;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static MyInt foo4_int_5(void) {
+// CHECK-NEXT:    return 5;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static MyInt foo4_int_n5(void) {
+// CHECK-NEXT:    return -5;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+
+// CHECK-NEXT:static int foo5_5(void) {
+// CHECK-NEXT:    return 5;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo5_n5(void) {
+// CHECK-NEXT:    return -5;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo6_5_int(void) {
+// CHECK-NEXT:    return 5;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static int foo6_n5_int(void) {
+// CHECK-NEXT:    return -5;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S1_int_5_bar(struct S1_int_5 *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S1_int_n5_bar(struct S1_int_n5 *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S2_int_5_bar(struct S2_int_5 *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S3_int_5_bar(struct S3_int_5 *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S4_int_5_bar(struct S4_int_5 *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S4_int_n5_bar(struct S4_int_n5 *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S5_5_bar(struct S5_5 *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S5_n5_bar(struct S5_n5 *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S6_5_int_bar(struct S6_5_int *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S6_n5_int_bar(struct S6_n5_int *this) {
+// CHECK-NEXT:}
+// CHECK-EMPTY:

@@ -1,0 +1,35 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+struct A {
+    int a;
+};
+
+struct AP {
+  struct A ap;
+};
+
+int test1() {
+    struct A sa = {1};
+    struct AP sap = {sa};
+    int c = *sap;                           // expected-error {{indirection requires pointer operand ('struct AP' invalid)}}
+    return 0;
+}
+
+struct BP {
+  struct A *ap;
+};
+
+__attribute__((operator *))
+struct A* memberDeref2(struct BP s) {       // expected-error {{overloaded function 'memberDeref2' first parameter or return type must be struct or enumeration pointer type}}
+    return s.ap;
+}
+
+__attribute__((operator *))
+struct A memberDeref2(struct BP* s) {       // expected-error {{overloaded function 'memberDeref2' first parameter or return type must be struct or enumeration pointer type}}
+    return *s->ap;
+}
+
+__attribute__((operator *))
+int *memberDeref2(int * s) {               // expected-error {{overloaded function 'memberDeref2' first parameter or return type must be struct or enumeration pointer type}}
+    return s;
+}

@@ -1,0 +1,113 @@
+// RUN: %clang -Eno-use-moved-owned -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// expected-no-diagnostics
+
+owned struct A {  
+   public:
+   int x;
+   int y ;
+  ~A(A this){
+  }
+};                       
+int f(A a){ return 1;}
+
+int test1() {
+   A a = {1, 2};
+   A b = a;
+   f(a);     // use of moved value: `a`
+   return 0;
+}
+
+owned struct S {
+public:
+  int a;
+  int b;
+};
+
+owned struct T {
+public:
+  S s;
+};
+
+struct B {
+  T t;
+  int c;
+};
+
+void test2(struct B sb) {
+  S s = sb.t.s;
+  T t = sb.t;   // use of partially moved value: `sb.t`, sb.t.s is moved
+}
+
+// CHECK:      struct A;
+// CHECK-NEXT: struct S;
+// CHECK-NEXT: struct T;
+// CHECK-NEXT: struct B;
+// CHECK-NEXT: struct A {
+// CHECK-NEXT:     int x;
+// CHECK-NEXT:     int y;
+// CHECK-NEXT: };
+// CHECK-EMPTY: 
+// CHECK:      struct S {
+// CHECK-NEXT:     int a;
+// CHECK-NEXT:     int b;
+// CHECK-NEXT: };
+// CHECK-EMPTY: 
+// CHECK:      struct T {
+// CHECK-NEXT:      struct S s;
+// CHECK-NEXT: };
+// CHECK-EMPTY: 
+// CHECK:      struct B {
+// CHECK-NEXT:      struct T t;
+// CHECK-NEXT:     int c;
+// CHECK-NEXT: };
+// CHECK-EMPTY: 
+// CHECK:      static void struct_A_D( struct A this);
+// CHECK-EMPTY: 
+// CHECK:      void struct_S_D( struct S this);
+// CHECK-EMPTY: 
+// CHECK:      void struct_T_D( struct T this);
+// CHECK-EMPTY: 
+// CHECK:      int f( struct A a) {
+// CHECK-NEXT:     _Bool a_is_moved = 0;
+// CHECK-NEXT:     if (!a_is_moved)
+// CHECK-NEXT:         struct_A_D(a);
+// CHECK-NEXT:     return 1;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int test1(void) {
+// CHECK-NEXT:      struct A a = {1, 2};
+// CHECK-NEXT:     _Bool a_is_moved = 0;
+// CHECK-NEXT:      struct A b = a;
+// CHECK-NEXT:     _Bool b_is_moved = 0;
+// CHECK-NEXT:     a_is_moved = 1;
+// CHECK-NEXT:     f(a);
+// CHECK-NEXT:     a_is_moved = 1;
+// CHECK-NEXT:     if (!b_is_moved)
+// CHECK-NEXT:         struct_A_D(b);
+// CHECK-NEXT:     if (!a_is_moved)
+// CHECK-NEXT:         struct_A_D(a);
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      void test2(struct B sb) {
+// CHECK-NEXT:      struct S s = sb.t.s;
+// CHECK-NEXT:     _Bool s_is_moved = 0;
+// CHECK-NEXT:      struct T t = sb.t;
+// CHECK-NEXT:     _Bool t_is_moved = 0;
+// CHECK-NEXT:     if (!t_is_moved)
+// CHECK-NEXT:         struct_T_D(t);
+// CHECK-NEXT:     if (!s_is_moved)
+// CHECK-NEXT:         struct_S_D(s);
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      static void struct_A_D( struct A this) {
+// CHECK-NEXT:     _Bool this_is_moved = 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      void struct_S_D( struct S this) {
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      void struct_T_D( struct T this) {
+// CHECK-NEXT:     struct_S_D(this.s);
+// CHECK-NEXT: }

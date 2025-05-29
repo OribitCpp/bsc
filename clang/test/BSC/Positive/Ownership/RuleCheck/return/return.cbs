@@ -1,0 +1,31 @@
+// RUN: %clang_cc1 -verify %s
+// expected-no-diagnostics
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+struct A {};
+
+int * owned func1(int * owned a) {
+	return a;
+}
+
+int * owned func3() {
+	int num = 1;
+	int * owned p = (int * owned)&num;
+	return p;
+}
+
+struct A func7(struct A a) {
+	return a;
+}
+
+struct A * owned func8(struct A * owned a) {
+	return a;
+}
+
+int main() {
+	return 0;
+}

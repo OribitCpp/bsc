@@ -1,0 +1,77 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+#define NULL (void *)0
+
+struct _BSC_ListNode<T> {
+  _BSC_ListNode<T>* next;
+  _BSC_ListNode<T>* prev;
+  T element;
+};
+
+owned struct LinkedList<T> {
+private:
+    _BSC_ListNode<T> *head;
+    _BSC_ListNode<T> *tail;
+    int len;
+};
+
+owned struct RawVec<T> {
+public:
+  T* ptr;
+  int cap;
+};
+
+owned struct Vec<T> {
+public:
+  RawVec<T> buf;
+  int len;
+};
+
+safe LinkedList<T> LinkedList<T>::new(void){
+  unsafe {
+    LinkedList<T> rv = {NULL, NULL, 0};
+    return rv;
+  }
+}
+
+safe RawVec<T> RawVec<T>::new(void) {
+  unsafe {
+    RawVec<T> rv = { .ptr = NULL, .cap = 0 };
+    return rv;
+  }
+}
+
+safe Vec<T> Vec<T>::new(void) {
+  unsafe {
+    RawVec<T> buf = RawVec<T>::new();
+    Vec<T> v = { .buf = buf, .len = 0 };
+    return v;
+  }
+}
+
+int main() {
+    Vec<int> v1 = Vec<int>::new();
+    Vec<int> v2 = Vec<int>::new();
+    Vec<int> v3 = Vec<int>::new();
+    LinkedList<Vec<int>> l = LinkedList<Vec<int>>::new();
+    return 0;
+}
+
+// CHECK:      struct RawVec_int {
+// CHECK-NEXT:   int *ptr;
+// CHECK-NEXT:   int cap;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct LinkedList_struct_Vec_int {
+// CHECK-NEXT:   struct _BSC_ListNode_struct_Vec_int *head;
+// CHECK-NEXT:   struct _BSC_ListNode_struct_Vec_int *tail;
+// CHECK-NEXT:   int len;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct Vec_int {
+// CHECK-NEXT:    struct RawVec_int buf;
+// CHECK-NEXT:   int len;
+// CHECK-NEXT: };

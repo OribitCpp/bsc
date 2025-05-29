@@ -1,0 +1,40 @@
+// RUN: %clang_cc1 -verify %s
+
+// struct
+struct Foo {
+  int a;
+};
+
+struct Bar {
+  int a;
+};
+
+int struct Foo::getBarA(struct Bar* this) { // expected-error {{type of parameter 'this' is wrong, expected 'This*' or 'This' or 'struct Foo*' or 'struct Foo', but found 'struct Bar *'}}
+  return this->a;
+}
+
+// enum
+enum E {
+  X3,
+  X4
+};
+
+int enum E::getBarA(struct Bar* this) { // expected-error {{type of parameter 'this' is wrong, expected 'This*' or 'This' or 'enum E*' or 'enum E', but found 'struct Bar *'}}
+  return this->a;
+}
+
+// union
+union SimpleUnion {
+  float uf;
+  int ui;
+  char uc;
+};
+
+int union SimpleUnion::getBarA(struct Bar* this) { // expected-error {{type of parameter 'this' is wrong, expected 'This*' or 'This' or 'union SimpleUnion*' or 'union SimpleUnion', but found 'struct Bar *'}}
+  return this->a;
+}
+
+// BuiltinType
+int int::getBarA(struct Bar* this) { // expected-error {{type of parameter 'this' is wrong, expected 'This*' or 'This' or 'int*' or 'int', but found 'struct Bar *'}}
+  return this->a;
+}

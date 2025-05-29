@@ -1,0 +1,62 @@
+// RUN: %clang_cc1 -nullability-check=none -verify %s
+// expected-no-diagnostics
+
+safe void check_dereferenced_test1(void) {
+  int *borrow _Nullable p = nullptr;
+  {
+    *p = 10;
+    unsafe {
+      int a = 2;
+      *p = a;
+    }
+  }
+  *p = 5;
+}
+
+safe void check_dereferenced_test2(void) {
+  int *borrow _Nullable p = nullptr;
+  if (p != nullptr) {
+    *p = 5;
+  }
+  *p = 10;
+}
+
+void check_dereferenced_test3() {
+  safe {
+    int *borrow _Nullable p = nullptr;
+    unsafe {
+      *p = 5;
+      safe {
+        if (p != nullptr) {
+          *p = 10;
+        }
+        *p = 15;
+      }
+    }
+    *p = 20;
+  }
+}
+
+safe void check_assigned_test(void) {
+  int *borrow p = nullptr;
+  unsafe {
+    int *borrow p2 = nullptr;
+  }
+}
+
+safe int* borrow _Nonnull check_returned_test(int *borrow _Nonnull ptr ) {
+  int *borrow _Nullable p = nullptr;
+  return p;
+}
+
+safe void check_param_pass_test(int *borrow ptr) {
+  int *borrow _Nullable p = nullptr;
+  int *borrow p2 = check_returned_test(p);
+  unsafe {
+    int *borrow p3 = check_returned_test(p);
+  }
+}
+
+
+
+

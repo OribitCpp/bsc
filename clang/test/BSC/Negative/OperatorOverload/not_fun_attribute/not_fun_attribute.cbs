@@ -1,0 +1,20 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+__attribute__((operator +)) int a;   // expected-warning {{'operator' attribute only applies to functions}}
+
+struct A {
+    int a;
+} __attribute__((operator +));      // expected-warning {{'operator' attribute only applies to functions}}
+
+enum EE {
+    AAA,
+    BBB,
+} __attribute__((operator +));      // expected-warning {{'operator' attribute only applies to functions}}
+
+void test1(){
+    __attribute__((operator ~)) int a = 1;         // expected-warning {{'operator' attribute only applies to functions}}
+    __attribute__((operator ~)) struct A s;        // expected-warning {{'operator' attribute only applies to functions}}
+    __attribute__((operator ~)) enum EE b = AAA;   // expected-warning {{'operator' attribute only applies to functions}}
+}
+
+int main(){}

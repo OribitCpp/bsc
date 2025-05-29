@@ -1,0 +1,48 @@
+// RUN: %clang_cc1  -verify %s
+
+void spawn_on1<T>() {
+    struct Handle1 h; //expected-error{{variable has incomplete type 'struct Handle1'}} expected-note{{forward declaration of 'struct Handle1'}}
+}
+
+struct Handle2 {};
+void spawn_on2<T>() {
+    struct Handle2 h;
+}
+
+void spawn_on3<T>() {
+    struct Handle3 {}; //expected-error{{struct definition in generic fuction is not supported in BSC}} expected-note{{forward declaration of 'struct Handle3'}}
+    struct Handle3 h;  //expected-error{{variable has incomplete type 'struct Handle3'}} 
+}
+
+struct Handle4 {};
+void spawn_on4<T>() {
+    struct Handle4 {};  //expected-error{{struct definition in generic fuction is not supported in BSC}} expected-note{{forward declaration of 'struct Handle4'}}
+    struct Handle4 h;   //expected-error{{variable has incomplete type 'struct Handle4'}}
+}
+
+struct Handle5;    //expected-note{{forward declaration of 'struct Handle5'}}
+void spawn_on5<T>() {
+    struct Handle5 h;   //expected-error{{variable has incomplete type 'struct Handle5'}}
+}
+
+void spawn_on6<T>() {
+    struct Handle6;   //expected-note{{forward declaration of 'struct Handle6'}}
+    struct Handle6 h;  //expected-error{{variable has incomplete type 'struct Handle6'}}
+}
+
+struct Handle7;
+void spawn_on7<T>() {
+    struct Handle7;   //expected-note{{forward declaration of 'struct Handle7'}}
+    struct Handle7 h;  //expected-error{{variable has incomplete type 'struct Handle7'}}
+}
+
+int main() {
+    spawn_on1<int>();   //expected-note{{in instantiation of function template specialization 'spawn_on1<int>' requested here}}
+    spawn_on2<int>();
+    spawn_on3<int>();    //expected-note{{in instantiation of function template specialization 'spawn_on3<int>' requested here}}
+    spawn_on4<int>();    //expected-note{{in instantiation of function template specialization 'spawn_on4<int>' requested here}}
+    spawn_on5<int>();
+    spawn_on6<int>();    //expected-note{{in instantiation of function template specialization 'spawn_on6<int>' requested here}}
+    spawn_on7<int>();    //expected-note{{in instantiation of function template specialization 'spawn_on7<int>' requested here}}
+    return 0;
+}

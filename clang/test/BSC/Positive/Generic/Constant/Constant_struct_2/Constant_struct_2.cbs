@@ -1,0 +1,35 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+typedef long long int LLint;
+typedef unsigned short US;
+
+struct Array_1<LLint B, int C, T>
+{
+  LLint data[B];
+  T a;
+};
+
+struct Array_2<LLint B, US C>
+{
+  int data[B];
+  US a;
+};
+
+struct Array_3<LLint B, T, signed C>
+{
+  US data[B];
+  int data_2[C];
+};
+
+int main() {
+  struct Array_1<5, 6, int> arr1 = {.a = 1};
+  struct Array_2<5, 6> arr2 = {.a = 1};
+  struct Array_3<5, int, 6> arr3;
+  
+  return 0;
+}

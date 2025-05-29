@@ -1,0 +1,42 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// expected-no-diagnostics
+
+// Test with serialization:
+// RUN: %clang_cc1 -triple x86_64-unknown-unknown -emit-pch -o %t %s
+// RUN: %clang_cc1 -x bsc -triple x86_64-unknown-unknown -include-pch %t -ast-dump-all /dev/null \
+// RUN: | sed -e "s/ <undeserialized declarations>//" -e "s/ imported//" \
+// RUN: | FileCheck --strict-whitespace %s
+
+typedef MyInt = int;
+typedef MyType<T> = T;
+
+void foo() {
+    typedef MyInt1 = int;
+    MyInt1 b = 5;
+}
+// CHECK: FunctionDecl 0x{{[^ ]*}} <{{.*}}:[[@LINE-4]]:1, line:[[@LINE-1]]:1> line:[[@LINE-4]]:6 used foo 'void (void)'
+// CHECK-NEXT: CompoundStmt 0x{{[^ ]*}} <col:12, line:[[@LINE-2]]:1>
+// CHECK-NEXT: DeclStmt 0x{{[^ ]*}} <line:[[@LINE-4]]:5, col:17>
+// CHECK-NEXT: VarDecl 0x{{[^ ]*}} <col:5, col:16> col:12 b 'MyInt1':'int' cinit
+// CHECK-NEXT: IntegerLiteral 0x{{[^ ]*}} <col:16> 'int' 5
+
+int main() {
+    MyInt a = 5;
+    MyType<int> b = 5;
+    foo();
+    return 0;
+}
+// CHECK: FunctionDecl 0x{{[^ ]*}} <line:[[@LINE-6]]:1, line:[[@LINE-1]]:1> line:[[@LINE-6]]:5 main 'int (void)'
+// CHECK-NEXT: CompoundStmt 0x{{[^ ]*}} <col:12, line:[[@LINE-2]]:1>
+// CHECK-NEXT: DeclStmt 0x{{[^ ]*}} <line:[[@LINE-7]]:5, col:16>
+// CHECK-NEXT: VarDecl 0x{{[^ ]*}} <col:5, col:15> col:11 a 'MyInt':'int' cinit
+// CHECK-NEXT: IntegerLiteral 0x{{[^ ]*}} <col:15> 'int' 5
+// CHECK-NEXT: DeclStmt 0x{{[^ ]*}} <line:[[@LINE-9]]:5, col:22>
+// CHECK-NEXT: VarDecl 0x{{[^ ]*}} <col:5, col:21> col:17 b 'MyType<int>':'int' cinit
+// CHECK-NEXT: IntegerLiteral 0x{{[^ ]*}} <col:21> 'int' 5
+// CHECK-NEXT: CallExpr 0x{{[^ ]*}} <line:[[@LINE-11]]:5, col:9> 'void'
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:5> 'void (*)(void)' <FunctionToPointerDecay>
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:5> 'void (void)' Function 0x{{[^ ]*}} 'foo' 'void (void)'
+// CHECK-NEXT: ReturnStmt 0x{{[^ ]*}} <line:[[@LINE-13]]:5, col:12>
+// CHECK-NEXT: IntegerLiteral 0x{{[^ ]*}} <col:12> 'int' 0

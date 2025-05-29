@@ -1,0 +1,31 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+owned struct A {
+    public:
+        int a;
+        int l(A* this) {
+            return this->f(); // ok
+        }
+    private:
+        int f(A* this) { return 0;}
+        int q(A* this);
+        int m(A* this) {
+            return this->f(); // ok
+        }
+};
+
+
+int A::q(A* this);
+int A::q(A* this) {
+    return this->f(); // ok
+}
+
+int main() {
+    A a = {8};
+    a.l();
+    return 0;
+}

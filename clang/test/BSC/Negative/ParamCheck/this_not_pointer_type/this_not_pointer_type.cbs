@@ -1,0 +1,20 @@
+// RUN: %clang_cc1 -verify %s
+
+struct S{
+    int a;
+};
+struct S struct S::f1(struct S* this) {
+    return this;    // expected-error {{returning 'struct S *' from a function with incompatible result type 'struct S'; dereference with *}}
+}
+int struct S::f2(struct S this) {
+    return this->a;    // expected-error {{member reference type 'struct S' is not a pointer; did you mean to use '.'?}}
+}
+void test() {
+    struct S s1 = {.a = 42};
+    int a = s1.f1()->f2();  // expected-error {{member reference type 'struct S' is not a pointer; did you mean to use '.'?}}
+}
+int main()
+{
+    test();
+    return 0;
+}

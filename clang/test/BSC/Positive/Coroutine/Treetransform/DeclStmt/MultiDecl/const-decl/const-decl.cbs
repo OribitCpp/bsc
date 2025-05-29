@@ -1,0 +1,73 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../../../lib/Headers/bsc_include/future.hbs -o %T/future.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include "future.hbs"
+#include <stdlib.h>
+
+async int read(int a) {
+  return 0;
+}
+
+struct Addr
+{
+    int a;
+    char str[10];
+};
+
+async int f(int start) {
+  const long myLong = 100000L;
+  const unsigned int myUnsignedInt = 10U;
+  const float myFloat = 3.14f;
+  const double myDouble = 3.14159;
+  const struct Addr addr = {1, "hello"};
+  const int newStart = start;
+
+  int result = await read(newStart);
+  return result + 5 + start;
+}
+
+int main() {
+  trait Future<int>* this = f(1);
+  this->poll();
+  return 0;
+}
+
+// CHECK: struct PollResult_int struct__Futuref_poll(struct _Futuref *this) {
+// CHECK-NEXT:     switch (this->__future_state) {
+// CHECK-NEXT:       case 0:
+// CHECK-NEXT:         goto __L0;
+// CHECK-NEXT:       case 1:
+// CHECK-NEXT:         goto __L1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:   __L0:
+// CHECK-NEXT:     ;
+// CHECK-NEXT:     const long myLong = 100000L;
+// CHECK-NEXT:     const unsigned int myUnsignedInt = 10U;
+// CHECK-NEXT:     const float myFloat = 3.1400001F;
+// CHECK-NEXT:     const double myDouble = 3.1415899999999999;
+// CHECK-NEXT:     const struct Addr addr = {1, "hello"};
+// CHECK-NEXT:     this->newStart = this->start;
+// CHECK-NEXT:     this->Ft_1 = __read(this->newStart);
+// CHECK-NEXT:   __L1:
+// CHECK-NEXT:     ;
+// CHECK-NEXT:     int Res_1;
+// CHECK-NEXT:     struct PollResult_int PR_1 = this->Ft_1.vtable->poll(this->Ft_1.data);
+// CHECK-NEXT:     if (struct_PollResult_int_is_completed(&PR_1, &Res_1)) {
+// CHECK-NEXT:         if (this->Ft_1.data != 0) {
+// CHECK-NEXT:             this->Ft_1.vtable->free(this->Ft_1.data);
+// CHECK-NEXT:             this->Ft_1.data = (void *)0;
+// CHECK-NEXT:         }
+// CHECK-NEXT:     } else {
+// CHECK-NEXT:         this->__future_state = 1;
+// CHECK-NEXT:         return struct_PollResult_int_pending();
+// CHECK-NEXT:     }
+// CHECK-NEXT:     this->result = Res_1;
+// CHECK-NEXT:     this->__future_state = -1;
+// CHECK-NEXT:     int __RES_RETURN = this->result + 5 + this->start;
+// CHECK-NEXT:     return struct_PollResult_int_completed(__RES_RETURN);
+// CHECK-NEXT: }

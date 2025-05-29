@@ -1,0 +1,13 @@
+// RUN: %clang_cc1 -verify %s
+// expected-no-diagnostics
+
+struct MyStruct<T> {
+  T res;
+};
+
+union MyUnion<T> {
+  T res;
+};
+
+int struct MyStruct<T>::completed(struct MyStruct<T> *this, int a);
+int union MyUnion<T>::completed(union MyUnion<T> *this, int a);

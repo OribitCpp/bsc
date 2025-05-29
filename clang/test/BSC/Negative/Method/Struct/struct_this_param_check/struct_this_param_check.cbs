@@ -1,0 +1,7 @@
+// RUN: %clang_cc1 -verify %s
+
+struct Foo {
+};
+int struct Foo::getA(int this) { // expected-error {{type of parameter 'this' is wrong, expected 'This*' or 'This' or 'struct Foo*' or 'struct Foo', but found 'int'}}
+  return 0;
+}

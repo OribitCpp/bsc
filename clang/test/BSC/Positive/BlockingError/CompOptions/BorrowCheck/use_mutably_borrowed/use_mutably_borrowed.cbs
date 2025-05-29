@@ -1,0 +1,19 @@
+// RUN: %clang -Eno-use-mutably-borrowed -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// expected-no-diagnostics
+
+void test1() {
+  int local = 42;
+  int *borrow p = &mut local;
+  int *borrow q = p;
+  p = q;
+  int temp = *q;  // cannot use `*q` because it was mutably borrowed
+}
+
+// CHECK:      void test1(void) {
+// CHECK-NEXT:     int local = 42;
+// CHECK-NEXT:     int * p = &local;
+// CHECK-NEXT:     int * q = p;
+// CHECK-NEXT:     p = q;
+// CHECK-NEXT:     int temp = *q;
+// CHECK-NEXT: }

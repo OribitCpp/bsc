@@ -1,0 +1,37 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+owned struct C {
+public:
+    int m;
+};
+
+owned struct A<T> {
+public:
+    T a;
+};
+
+A<T> A<T>::new(T value) {
+    A<T> a = { .a = value };
+    return a;
+}
+
+owned struct B<T> {
+public:
+    T b;
+};
+
+B<T> B<T>::new(T value) {
+    B<T> b = { .b = value };
+    return b;
+}
+
+int main() {
+    C c = { .m = 5 };
+    B<A<C>> b = B<A<C>>::new(A<C>::new(c));
+    return 0;
+}

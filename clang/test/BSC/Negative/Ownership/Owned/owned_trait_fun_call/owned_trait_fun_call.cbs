@@ -1,0 +1,94 @@
+// RUN: %clang_cc1 -verify %s
+
+trait T {
+  safe void do_it(This* owned this);
+  void do_that(This* this);
+  safe void do_this(This* borrow this);
+};
+
+safe void int::do_it(int* owned this) {
+  unsafe { int* x = (int*)this; }
+}
+
+void int::do_that(int* this) {
+}
+
+safe void int::do_this(int* borrow this) {
+}
+
+impl trait T for int;
+
+struct S {
+  int* owned a;
+  int* owned b;
+};
+
+safe void struct S::do_it(struct S* owned this) {
+  unsafe {
+    int* a = (int *)this->a;
+    int* b = (int *)this->b;
+    void* s = (void *)(void* owned)this;
+  }
+}
+
+void struct S::do_that(struct S* this) {
+}
+
+safe void struct S::do_this(struct S* borrow this) {
+}
+
+impl trait T for struct S;
+
+void test1() {
+  int x = 1;
+  trait T* t = &x;
+  t->do_it(); // expected-error {{incompatible owned types, cannot cast 'void *' to 'void *owned'}}
+  t->do_that();
+  t->do_this();
+}
+
+void test2() {
+  int x = 1;
+  trait T* owned t = (int* owned)&x;
+  t->do_it();
+  t->do_that(); // expected-error {{incompatible owned types, cannot cast 'void *owned' to 'void *'}}
+  t->do_this(); // expected-error {{incompatible owned types, cannot cast 'void *owned' to 'void *borrow'}}
+}
+
+void test3() {
+  int x = 1;
+  trait T* borrow t = &mut x;
+  t->do_it(); // expected-error {{incompatible owned types, cannot cast 'void *borrow' to 'void *owned'}}
+  t->do_that();
+  t->do_this();
+}
+
+safe int* owned initI(void);
+safe struct S initS(void);
+struct S* initSP();
+safe struct S* owned convertToOwned(struct S);
+
+void test4() {
+  struct S* s = initSP();
+  trait T* t = s;
+  t->do_it(); // expected-error {{incompatible owned types, cannot cast 'void *' to 'void *owned'}}
+  t->do_that();
+  t->do_this();
+}
+
+void test5() {
+  struct S s = initS();
+  struct S* owned sp = convertToOwned(s);
+  trait T* owned t = sp;
+  t->do_it();
+  t->do_that(); // expected-error {{incompatible owned types, cannot cast 'void *owned' to 'void *'}}
+  t->do_this(); // expected-error {{incompatible owned types, cannot cast 'void *owned' to 'void *borrow'}}
+}
+
+void test6() {
+  struct S s = initS();
+  trait T* borrow t= &mut s;
+  t->do_it(); // expected-error {{incompatible owned types, cannot cast 'void *borrow' to 'void *owned'}}
+  t->do_that();
+  t->do_this();
+}

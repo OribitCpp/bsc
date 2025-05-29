@@ -1,0 +1,17 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang_cc1 %t-rw.c -o %t-rw.output
+// expected-no-diagnostics
+
+short short int::getA() {
+  return 1;
+};
+
+int main() {
+  return 0;
+};
+
+// CHECK: short short_getA(void) {
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }

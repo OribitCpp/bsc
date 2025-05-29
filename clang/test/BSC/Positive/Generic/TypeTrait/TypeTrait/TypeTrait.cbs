@@ -1,0 +1,700 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../lib/Headers/bsc_include/bsc_type_traits.hbs -o %T/bsc_type_traits.h
+// RUN: %clang -rewrite-bsc %S/TypeTrait.hbs -o %T/TypeTrait.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+#include "TypeTrait.hbs"
+typedef int MyInt;
+typedef int arr1[];
+typedef int arr2[3];
+typedef int arr3[3][4];
+typedef struct G { int a; } G;
+typedef enum E { Mon=1, Tue, Wed } E;
+typedef union U { int a; } U;
+typedef struct S<int> S_int;
+owned struct A {public: int a; };
+typedef struct B { int *owned a; } B;
+typedef struct C { A a; } C;
+typedef struct D { B b; } D;
+typedef int *owned OwnedInt;
+int main() {
+    struct S<int> s1;
+    struct S<float> s2;
+    struct S<A> s3 = {.a = { .a = 1}};
+    s1.foo(); //print "integral"
+    s2.foo(); //print "not integral"
+    s3.foo(); //print "not integral"
+    A a = s3.a;
+    bar<int>();  //print "integral"
+    bar<float>(); //print "not integral"
+    _Static_assert(is_integral<int>() == true, "fail");
+    _Static_assert(is_integral<MyInt>() == true, "fail");
+    _Static_assert(is_integral<float>() == false, "fail");
+    _Static_assert(is_floating_point<float>() == true, "fail");
+    _Static_assert(is_floating_point<int>() == false, "fail");
+    _Static_assert(is_void<void>() == true, "fail");
+    _Static_assert(is_void<int>() == false, "fail");
+    _Static_assert(is_signed<int>() == true, "fail");
+    _Static_assert(is_signed<unsigned int>() == false, "fail");
+    _Static_assert(is_unsigned<unsigned int>() == true, "fail");
+    _Static_assert(is_unsigned<int>() == false, "fail");
+    _Static_assert(is_const<const int>() == true, "fail");
+    _Static_assert(is_const<int>() == false, "fail");
+    _Static_assert(is_volatile<volatile int>() == true, "fail");
+    _Static_assert(is_volatile<int>() == false, "fail");
+    _Static_assert(is_move_semantic<int *owned>() == true, "fail");
+    _Static_assert(is_move_semantic<A>() == true, "fail");
+    _Static_assert(is_move_semantic<struct B>() == true, "fail");
+    _Static_assert(is_move_semantic<B>() == true, "fail");
+    _Static_assert(is_move_semantic<D>() == true, "fail");
+    _Static_assert(is_move_semantic<A*>() == false, "fail");
+    _Static_assert(is_move_semantic<struct S<A>>() == true, "fail");
+    _Static_assert(is_move_semantic<struct S<int>>() == false, "fail");
+    _Static_assert(is_owned_pointer<int *owned>() == true, "fail");
+    _Static_assert(is_owned_pointer<OwnedInt>() == true, "fail");
+    _Static_assert(is_owned_pointer<int *owned *>() == false, "fail");
+    _Static_assert(is_owned_pointer<A>() == false, "fail");
+    _Static_assert(is_owned_struct<B>() == false, "fail");
+    _Static_assert(is_owned_struct<A>() == true, "fail");
+    _Static_assert(is_array<int[]>() == true, "fail");
+    _Static_assert(is_array<int>() == false, "fail");
+    _Static_assert(is_function<int ()>() == true, "fail");
+    _Static_assert(is_function<int>() == false, "fail");
+    _Static_assert(is_pointer<int*>() == true, "fail");
+    _Static_assert(is_pointer<int>() == false, "fail");
+    _Static_assert(is_struct<struct G>() == true, "fail");
+    _Static_assert(is_struct<G>() == true, "fail");
+    _Static_assert(is_struct<struct S<int> >() == true, "fail");
+    _Static_assert(is_struct<S_int>() == true, "fail");
+    _Static_assert(is_struct<int>() == false, "fail");
+    _Static_assert(is_enum<enum E>() == true, "fail");
+    _Static_assert(is_enum<E>() == true, "fail");
+    _Static_assert(is_enum<int>() == false, "fail");
+    _Static_assert(is_union<union U>() == true, "fail");
+    _Static_assert(is_union<U>() == true, "fail");
+    _Static_assert(is_union<int>() == false, "fail");
+    _Static_assert(is_same<int, signed int>() == true, "fail");
+    _Static_assert(is_same<int, float>() == false, "fail");
+    _Static_assert(is_same<struct G, G>() == true, "fail");
+    _Static_assert(is_convertible<int, float>() == true, "fail");
+    _Static_assert(is_convertible<int, int()>() == false, "fail");
+    _Static_assert(is_convertible<struct G, G>() == true, "fail");
+    _Static_assert(is_convertible<struct G, S_int>() == false, "fail");
+    _Static_assert(is_convertible<int, const int>() == true, "fail");
+    _Static_assert(is_convertible<int, unsigned>() == true, "fail");
+    _Static_assert(is_convertible<int, void>() == false, "fail");
+    _Static_assert(is_convertible<int, int*>() == false, "fail");
+    _Static_assert(is_convertible<int*, void*>() == true, "fail");
+    _Static_assert(is_convertible<int*, float*>() == false, "fail");
+    _Static_assert(is_convertible<void*, int*>() == false, "fail");
+    _Static_assert(is_convertible<int*, int[]>() == false, "fail");
+    _Static_assert(is_convertible<int[], int*>() == true, "fail");
+    _Static_assert(is_convertible<int(*)(), int()>() == false, "fail");
+    _Static_assert(is_convertible<int(), int(*)()>() == true, "fail");
+    _Static_assert(is_convertible<int* const, int *>() == true, "fail");
+    _Static_assert(is_convertible<int*, int>() == false, "fail");
+    _Static_assert(is_convertible<int*, char*>() == false, "fail");
+    _Static_assert(is_convertible<int, char>() == true, "fail");
+    _Static_assert(is_convertible<int* [], int**>() == true, "fail");
+    _Static_assert(is_convertible<int* [], char**>() == false, "fail");
+    _Static_assert(is_convertible<int**, int *[]>() == false, "fail");
+    _Static_assert(is_convertible<int(*)[], int[]>() == false, "fail");
+    _Static_assert(is_convertible<int[], int(*)[]>() == false, "fail");
+    _Static_assert(is_convertible<int*, int(*)[]>() == false, "fail");
+    _Static_assert(rank<int>() == 0, "fail");
+    _Static_assert(rank<int[]>() == 1, "fail");
+    _Static_assert(rank<int[3]>() == 1, "fail");
+    _Static_assert(rank<int[3][4]>() == 2, "fail");
+    _Static_assert(rank<arr1>() == 1, "fail");
+    _Static_assert(rank<arr2>() == 1, "fail");
+    _Static_assert(rank<arr3>() == 2, "fail");
+    _Static_assert(extent<int, 0>() == 0, "fail");
+    _Static_assert(extent<int, 1>() == 0, "fail");
+    _Static_assert(extent<int[], 0>() == 0, "fail");
+    _Static_assert(extent<int[3], 0>() == 3, "fail");
+    _Static_assert(extent<int[3], 1>() == 0, "fail");
+    _Static_assert(extent<int[3][4], 0>() == 3, "fail");
+    _Static_assert(extent<int[3][4], 1>() == 4, "fail");
+    _Static_assert(extent<int[3][4], 2>() == 0, "fail");
+    _Static_assert(extent<arr1, 0>() == 0, "fail");
+    _Static_assert(extent<arr2, 0>() == 3, "fail");
+    _Static_assert(extent<arr2, 1>() == 0, "fail");
+    _Static_assert(extent<arr3, 0>() == 3, "fail");
+    _Static_assert(extent<arr3, 1>() == 4, "fail");
+    _Static_assert(extent<arr3, 2>() == 0, "fail");
+    return 0;
+}
+
+// CHECK: static _Bool is_integral_int(void);
+
+// CHECK: static _Bool is_integral_float(void);
+
+// CHECK: static _Bool is_integral_struct_A(void);
+
+// CHECK: _Bool is_floating_point_float(void);
+
+// CHECK: _Bool is_floating_point_int(void);
+
+// CHECK: _Bool is_signed_int(void);
+
+// CHECK: _Bool is_signed_unsigned_int(void);
+
+// CHECK: _Bool is_unsigned_unsigned_int(void);
+
+// CHECK: _Bool is_unsigned_int(void);
+
+// CHECK: _Bool is_pointer_int_P(void);
+
+// CHECK: _Bool is_pointer_int(void);
+
+// CHECK: _Bool is_function_int_LPvoidRP(void);
+
+// CHECK: _Bool is_function_int(void);
+
+// CHECK: _Bool is_array_intLBRB(void);
+
+// CHECK: _Bool is_array_int(void);
+
+// CHECK: _Bool is_struct_struct_G(void);
+
+// CHECK: _Bool is_struct_struct_S_int(void);
+
+// CHECK: _Bool is_struct_int(void);
+
+// CHECK: _Bool is_union_union_U(void);
+
+// CHECK: _Bool is_union_int(void);
+
+// CHECK: _Bool is_enum_enum_E(void);
+
+// CHECK: _Bool is_enum_int(void);
+
+// CHECK: _Bool is_const_const_int(void);
+
+// CHECK: _Bool is_const_int(void);
+
+// CHECK: _Bool is_volatile_volatile_int(void);
+
+// CHECK: _Bool is_volatile_int(void);
+
+// CHECK: _Bool is_void_void(void);
+
+// CHECK: _Bool is_void_int(void);
+
+// CHECK: _Bool is_same_int_int(void);
+
+// CHECK: _Bool is_same_int_float(void);
+
+// CHECK: _Bool is_same_struct_G_struct_G(void);
+
+// CHECK: _Bool is_convertible_int_float(void);
+
+// CHECK: _Bool is_convertible_int_int_LPvoidRP(void);
+
+// CHECK: _Bool is_convertible_struct_G_struct_G(void);
+
+// CHECK: _Bool is_convertible_struct_G_struct_S_int(void);
+
+// CHECK: _Bool is_convertible_int_const_int(void);
+
+// CHECK: _Bool is_convertible_int_unsigned_int(void);
+
+// CHECK: _Bool is_convertible_int_void(void);
+
+// CHECK: _Bool is_convertible_int_int_P(void);
+
+// CHECK: _Bool is_convertible_int_P_void_P(void);
+
+// CHECK: _Bool is_convertible_int_P_float_P(void);
+
+// CHECK: _Bool is_convertible_void_P_int_P(void);
+
+// CHECK: _Bool is_convertible_int_P_intLBRB(void);
+
+// CHECK: _Bool is_convertible_intLBRB_int_P(void);
+
+// CHECK: _Bool is_convertible_int_LPPRPLPvoidRP_int_LPvoidRP(void);
+
+// CHECK: _Bool is_convertible_int_LPvoidRP_int_LPPRPLPvoidRP(void);
+
+// CHECK: _Bool is_convertible_int_Pconst_int_P(void);
+
+// CHECK: _Bool is_convertible_int_P_int(void);
+
+// CHECK: _Bool is_convertible_int_P_char_P(void);
+
+// CHECK: _Bool is_convertible_int_char(void);
+
+// CHECK: _Bool is_convertible_int_PLBRB_int_PP(void);
+
+// CHECK: _Bool is_convertible_int_PLBRB_char_PP(void);
+
+// CHECK: _Bool is_convertible_int_PP_int_PLBRB(void);
+
+// CHECK: _Bool is_convertible_int_LPPRPLBRB_intLBRB(void);
+
+// CHECK: _Bool is_convertible_intLBRB_int_LPPRPLBRB(void);
+
+// CHECK: _Bool is_convertible_int_P_int_LPPRPLBRB(void);
+
+// CHECK: size_t rank_int(void);
+
+// CHECK: size_t rank_intLBRB(void);
+
+// CHECK: size_t rank_intLB3RB(void);
+
+// CHECK: size_t rank_intLB3RBLB4RB(void);
+
+// CHECK: size_t extent_int_0(void);
+
+// CHECK: size_t extent_int_1(void);
+
+// CHECK: size_t extent_intLBRB_0(void);
+
+// CHECK: size_t extent_intLB3RB_0(void);
+
+// CHECK: size_t extent_intLB3RB_1(void);
+
+// CHECK: size_t extent_intLB3RBLB4RB_0(void);
+
+// CHECK: size_t extent_intLB3RBLB4RB_1(void);
+
+// CHECK: size_t extent_intLB3RBLB4RB_2(void);
+
+// CHECK: void struct_S_int_foo(struct S_int *this);
+
+// CHECK: void struct_S_float_foo(struct S_float *this);
+
+// CHECK: static void struct_S_struct_A_foo(struct S_struct_A *this);
+
+// CHECK: void bar_int(void);
+
+// CHECK: void bar_float(void);
+
+// CHECK: void struct_A_D( struct A this);
+
+// CHECK:      int main(void) {
+// CHECK-NEXT:    struct S_int s1;
+// CHECK-NEXT:    struct S_float s2;
+// CHECK-NEXT:    struct S_struct_A s3 = {.a = {.a = 1}};
+// CHECK-NEXT:    struct_S_int_foo(&s1);
+// CHECK-NEXT:    struct_S_float_foo(&s2);
+// CHECK-NEXT:    struct_S_struct_A_foo(&s3);
+// CHECK-NEXT:    struct A a = s3.a;
+// CHECK-NEXT:    _Bool a_is_moved = 0;
+// CHECK-NEXT:    bar_int();
+// CHECK-NEXT:    bar_float();
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(2 == 2, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(1 == 1, "fail");
+// CHECK-NEXT:    _Static_assert(2 == 2, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(3 == 3, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(3 == 3, "fail");
+// CHECK-NEXT:    _Static_assert(4 == 4, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(3 == 3, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    _Static_assert(3 == 3, "fail");
+// CHECK-NEXT:    _Static_assert(4 == 4, "fail");
+// CHECK-NEXT:    _Static_assert(0 == 0, "fail");
+// CHECK-NEXT:    if (!a_is_moved)
+// CHECK-NEXT:        struct_A_D(a);
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT:}
+
+// CHECK: static _Bool is_integral_int(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_integral_float(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_floating_point_float(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_floating_point_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_signed_int(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_signed_unsigned_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_unsigned_unsigned_int(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_unsigned_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_pointer_int_P(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_pointer_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_function_int_LPvoidRP(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_function_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_array_intLBRB(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_array_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_struct_struct_G(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_struct_struct_S_int(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_struct_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_union_union_U(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_union_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_enum_enum_E(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_enum_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_const_const_int(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_const_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_volatile_volatile_int(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_volatile_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_void_void(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_void_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_same_int_int(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_same_int_float(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_same_struct_G_struct_G(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_float(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_int_LPvoidRP(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_struct_G_struct_G(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_struct_G_struct_S_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_const_int(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_unsigned_int(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_void(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_int_P(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_P_void_P(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_P_float_P(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_void_P_int_P(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_P_intLBRB(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_intLBRB_int_P(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_LPPRPLPvoidRP_int_LPvoidRP(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_LPvoidRP_int_LPPRPLPvoidRP(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_Pconst_int_P(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_P_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_P_char_P(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_char(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_PLBRB_int_PP(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_PLBRB_char_PP(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_PP_int_PLBRB(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_LPPRPLBRB_intLBRB(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_intLBRB_int_LPPRPLBRB(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: static _Bool is_convertible_int_P_int_LPPRPLBRB(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: size_t rank_int(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: size_t rank_intLBRB(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: size_t rank_intLB3RB(void) {
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT: }
+
+// CHECK: size_t rank_intLB3RBLB4RB(void) {
+// CHECK-NEXT:    return 2;
+// CHECK-NEXT: }
+
+// CHECK: size_t extent_int_0(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: size_t extent_int_1(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: size_t extent_intLBRB_0(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: size_t extent_intLB3RB_0(void) {
+// CHECK-NEXT:    return 3;
+// CHECK-NEXT: }
+
+// CHECK: size_t extent_intLB3RB_1(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: size_t extent_intLB3RBLB4RB_0(void) {
+// CHECK-NEXT:    return 3;
+// CHECK-NEXT: }
+
+// CHECK: size_t extent_intLB3RBLB4RB_1(void) {
+// CHECK-NEXT:    return 4;
+// CHECK-NEXT: }
+
+// CHECK: size_t extent_intLB3RBLB4RB_2(void) {
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT: }
+
+// CHECK: void struct_S_int_foo(struct S_int *this) {
+// CHECK-NEXT:    if (1) {
+// CHECK-NEXT:        printf("integral\n");
+// CHECK-NEXT:    } else {
+// CHECK-NEXT:        printf("not integral\n");
+// CHECK-NEXT:    }
+// CHECK-NEXT:}
+
+// CHECK: void struct_S_float_foo(struct S_float *this) {
+// CHECK-NEXT:    if (0) {
+// CHECK-NEXT:        printf("integral\n");
+// CHECK-NEXT:    } else {
+// CHECK-NEXT:        printf("not integral\n");
+// CHECK-NEXT:    }
+// CHECK-NEXT:}
+
+// CHECK: static void struct_S_struct_A_foo(struct S_struct_A *this) {
+// CHECK-NEXT:     if (0) {
+// CHECK-NEXT:         printf("integral\n");
+// CHECK-NEXT:     } else {
+// CHECK-NEXT:         printf("not integral\n");
+// CHECK-NEXT:     }
+// CHECK-NEXT: }
+
+// CHECK: void bar_int(void) {
+// CHECK-NEXT:    if (1) {
+// CHECK-NEXT:        printf("integral\n");
+// CHECK-NEXT:    } else {
+// CHECK-NEXT:        printf("not integral\n");
+// CHECK-NEXT:    }
+// CHECK-NEXT:}
+
+// CHECK: void bar_float(void) {
+// CHECK-NEXT:    if (0) {
+// CHECK-NEXT:        printf("integral\n");
+// CHECK-NEXT:    } else {
+// CHECK-NEXT:        printf("not integral\n");
+// CHECK-NEXT:    }
+// CHECK-NEXT:}
+
+// CHECK: void struct_A_D( struct A this) {
+// CHECK-NEXT: }

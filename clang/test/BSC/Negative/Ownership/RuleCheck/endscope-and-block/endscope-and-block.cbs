@@ -1,0 +1,47 @@
+// RUN: %clang_cc1 -verify %s
+
+void func1() {
+    int num = 1;
+    int owned * a;
+    a = (owned int *)&num;
+}
+
+void func2() {
+    int num = 1;
+    int * owned a;
+    a = (int * owned)&num;
+} // expected-error {{memory leak of value: `a`}}
+
+void func3(int * owned a) {
+    {
+        int * p = (int *)a;
+    }
+}
+
+void func4(int * owned a) {
+    {
+        int * p = (int *)a;
+    }
+    {
+        int * owned q = (int * owned)a; // expected-error {{use of moved value: `a`}}
+    } // expected-error {{memory leak of value: `q`}}
+}
+
+void func5(int * owned a) {
+    {
+        int * p = (int *)a;
+        {
+            int * owned q = (int * owned)p;
+        } // expected-error {{memory leak of value: `q`}}
+    }
+}
+
+void func6(int * owned a) {
+    {
+        int *p = (int *)a;
+        {
+            int * owned q = (int * owned)p;
+            {}
+        } // expected-error {{memory leak of value: `q`}}
+    }
+}

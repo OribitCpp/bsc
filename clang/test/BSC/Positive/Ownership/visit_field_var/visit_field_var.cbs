@@ -1,0 +1,176 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include <stdlib.h>
+
+T* owned safe_malloc<T>(T value) {
+  T * p = (T *) malloc( sizeof(T) );
+  *p = value;
+  return (T* owned)p;
+}
+
+void free_owned<T>(T* owned p) {
+  free( (void *)p );
+}
+
+struct Foo_No_Owned {
+  int a;
+  int m;
+};
+
+struct Foo_With_Owned {
+  int* owned a;
+  int* owned m;
+};
+
+struct Foo_with_struct{
+  struct Foo_No_Owned a;
+  int m;
+};
+
+struct Foo_with_struct_with_owned{
+  struct Foo_With_Owned a;
+  int m;
+};
+
+owned struct Bar_No_Owned {
+public:
+  int a;
+  int m;
+};
+
+owned struct Bar_With_Owned {
+public:
+  int* owned a;
+  int* owned m;
+  ~Bar_With_Owned(This this) {
+    free_owned<int>(this.a);
+    free_owned<int>(this.m);
+  }
+};
+
+void struct_field_copy_test() {
+  struct Foo_No_Owned foo = {.a = 1, .m = 2};
+  struct Foo_No_Owned *owned foo_owned = safe_malloc<struct Foo_No_Owned>(foo);
+  int f = foo_owned->a;
+  free_owned<struct Foo_No_Owned>(foo_owned); // error: use of all moved value: `bar_owned`
+}
+
+void struct_field_move_test() {
+  struct Foo_With_Owned foo = {.a = safe_malloc<int>(1), .m = safe_malloc<int>(2)};
+  struct Foo_With_Owned *owned foo_owned = safe_malloc<struct Foo_With_Owned>(foo);
+  int* owned f = foo_owned->a;
+  free_owned<int>(f); 
+  free_owned<int>(foo_owned->m);
+  free_owned<void>((void* owned)foo_owned);
+}
+
+void struct_field_struct_copy_test() {
+  struct Foo_with_struct foo = {.a = {.a = 1, .m = 2}, .m = 3};
+  struct Foo_with_struct *owned foo_owned = safe_malloc<struct Foo_with_struct>(foo);
+  int f = foo_owned->a.a;
+  free_owned<struct Foo_with_struct>(foo_owned);
+}
+
+void struct_field_struct_move_test() {
+  struct Foo_with_struct_with_owned foo = {.a = {.a = safe_malloc<int>(1), .m = safe_malloc<int>(2)}, .m = 3};
+  struct Foo_with_struct_with_owned *owned foo_owned = safe_malloc<struct Foo_with_struct_with_owned>(foo);
+  int* owned f = foo_owned->a.a;
+  free_owned<int>(f);
+  free_owned<int>(foo_owned->a.m);
+  free_owned<void>((void* owned)foo_owned);
+}
+
+void owned_struct_field_copy_test() {
+  Bar_No_Owned bar = {.a = 1, .m = 2};
+  Bar_No_Owned * owned bar_owned = safe_malloc<Bar_No_Owned>(bar);
+  int f = bar_owned->a;
+  free_owned<Bar_No_Owned>(bar_owned);
+}
+
+int main() {
+  struct_field_copy_test() ;
+  struct_field_move_test() ;
+  struct_field_struct_copy_test() ;
+  struct_field_struct_move_test() ;
+  owned_struct_field_copy_test() ;
+  return 0;
+}
+
+// CHECK-DAG: struct Foo_With_Owned {
+// CHECK-DAG-NEXT:     int * a;
+// CHECK-DAG-NEXT:     int * m;
+// CHECK-DAG-NEXT: };
+
+// CHECK-DAG-DAG: struct Bar_No_Owned {
+// CHECK-DAG-NEXT:     int a;
+// CHECK-DAG-NEXT:     int m;
+// CHECK-DAG-NEXT: };
+
+// CHECK-DAG-DAG: struct Bar_With_Owned {
+// CHECK-DAG-NEXT:     int * a;
+// CHECK-DAG-NEXT:     int * m;
+// CHECK-DAG-NEXT: };
+
+// CHECK-DAG: struct Foo_No_Owned {
+// CHECK-DAG-NEXT:   int a;
+// CHECK-DAG-NEXT:   int m;
+// CHECK-DAG-NEXT: };
+
+// CHECK-DAG: struct Foo_with_struct_with_owned {
+// CHECK-DAG-NEXT:     struct Foo_With_Owned a;
+// CHECK-DAG-NEXT:     int m;
+// CHECK-DAG-NEXT: };
+
+// CHECK-DAG: struct Foo_with_struct{
+// CHECK-DAG-NEXT:   struct Foo_No_Owned a;
+// CHECK-DAG-NEXT:   int m;
+// CHECK-DAG-NEXT: };
+
+// CHECK: void struct_field_copy_test(void) {
+// CHECK-NEXT:     struct Foo_No_Owned foo = {.a = 1, .m = 2};
+// CHECK-NEXT:     struct Foo_No_Owned * foo_owned = safe_malloc_struct_Foo_No_Owned(foo);
+// CHECK-NEXT:     int f = foo_owned->a;
+// CHECK-NEXT:     free_owned_struct_Foo_No_Owned(foo_owned);
+// CHECK-NEXT: }
+
+// CHECK: void struct_field_move_test(void) {
+// CHECK-NEXT:     struct Foo_With_Owned foo = {.a = safe_malloc_int(1), .m = safe_malloc_int(2)};
+// CHECK-NEXT:     struct Foo_With_Owned * foo_owned = safe_malloc_struct_Foo_With_Owned(foo);
+// CHECK-NEXT:     int * f = foo_owned->a;
+// CHECK-NEXT:     free_owned_int(f);
+// CHECK-NEXT:     free_owned_int(foo_owned->m);
+// CHECK-NEXT:     free_owned_void((void *)foo_owned);
+// CHECK-NEXT: }
+
+// CHECK: void struct_field_struct_copy_test(void) {
+// CHECK-NEXT:     struct Foo_with_struct foo = {.a = {.a = 1, .m = 2}, .m = 3};
+// CHECK-NEXT:     struct Foo_with_struct * foo_owned = safe_malloc_struct_Foo_with_struct(foo);
+// CHECK-NEXT:     int f = foo_owned->a.a;
+// CHECK-NEXT:     free_owned_struct_Foo_with_struct(foo_owned);
+// CHECK-NEXT: }
+
+// CHECK: void struct_field_struct_move_test(void) {
+// CHECK-NEXT:     struct Foo_with_struct_with_owned foo = {.a = {.a = safe_malloc_int(1), .m = safe_malloc_int(2)}, .m = 3};
+// CHECK-NEXT:     struct Foo_with_struct_with_owned * foo_owned = safe_malloc_struct_Foo_with_struct_with_owned(foo);
+// CHECK-NEXT:     int * f = foo_owned->a.a;
+// CHECK-NEXT:     free_owned_int(f);
+// CHECK-NEXT:     free_owned_int(foo_owned->a.m);
+// CHECK-NEXT:     free_owned_void((void *)foo_owned);
+// CHECK-NEXT: }
+
+// CHECK: void owned_struct_field_copy_test(void) {
+// CHECK-NEXT:      struct Bar_No_Owned bar = {.a = 1, .m = 2};
+// CHECK-NEXT:     _Bool bar_is_moved = 0;
+// CHECK-NEXT:      struct Bar_No_Owned * bar_owned = safe_malloc_struct_Bar_No_Owned(bar);
+// CHECK-NEXT:     bar_is_moved = 1;
+// CHECK-NEXT:     int f = bar_owned->a;
+// CHECK-NEXT:     free_owned_struct_Bar_No_Owned(bar_owned);
+// CHECK-NEXT:     if (!bar_is_moved)
+// CHECK-NEXT:         struct_Bar_No_Owned_D(bar);
+// CHECK-NEXT: }

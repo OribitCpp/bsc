@@ -1,0 +1,73 @@
+// RUN: %clang_cc1  -verify %s
+
+struct S {
+    typedef MyInt = int;  /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-warning{{type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int}}*/
+    typedef MyType<T> = T; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-error{{unknown type name 'MyType'}}
+                            expected-error{{expected member name or ';' after declaration specifiers}}*/
+};
+struct S1<T> {
+    typedef MyInt = int; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-warning{{type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int}}*/
+    typedef MyType1 = T; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-warning{{type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int}}*/
+    typedef MyType2<T> = T; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-error{{no template named 'MyType2'}}
+                            expected-error{{expected member name or ';' after declaration specifiers}}*/
+    typedef MyType3<T1> = T1; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-error{{use of undeclared identifier 'T1'}}
+                            expected-error{{expected member name or ';' after declaration specifiers}}*/
+};
+
+union U {
+    typedef MyInt = int;  /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-warning{{type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int}}*/
+    typedef MyType<T> = T; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-error{{unknown type name 'MyType'}}
+                            expected-error{{expected member name or ';' after declaration specifiers}}*/
+};
+union U1<T> {
+    typedef MyInt = int; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-warning{{type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int}}*/
+    typedef MyType1 = T; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-warning{{type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int}}*/
+    typedef MyType2<T> = T; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-error{{no template named 'MyType2'}}
+                            expected-error{{expected member name or ';' after declaration specifiers}}*/
+    typedef MyType3<T1> = T1; /* expected-error{{type name does not allow storage class to be specified}} 
+                            expected-error{{expected ';' at end of declaration list}}
+                            expected-error{{use of undeclared identifier 'T1'}}
+                            expected-error{{expected member name or ';' after declaration specifiers}}*/
+};
+
+trait F {
+    typedef MyInt = int;  /* expected-error{{expected member name or ';' after declaration specifiers}} 
+                            expected-warning{{type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int}}*/
+    typedef MyType<T> = T; /* expected-error{{expected member name or ';' after declaration specifiers}}
+                            expected-error{{unknown type name 'MyType'}}*/
+};
+trait F1<T> {
+    typedef MyInt = int;  /* expected-error{{expected member name or ';' after declaration specifiers}} 
+                            expected-warning{{type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int}}*/
+    typedef MyType1 = T; /* expected-error{{expected member name or ';' after declaration specifiers}}
+                            expected-warning{{type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int}}*/
+    typedef MyType2<T> = T; /* expected-error{{expected member name or ';' after declaration specifiers}} 
+                            expected-error{{no template named 'MyType2'}}*/
+    typedef MyType3<T1> = T1; /* expected-error{{expected member name or ';' after declaration specifiers}} 
+                            expected-error{{use of undeclared identifier 'T1'}}*/
+};
+int main() {
+    return 0;
+}

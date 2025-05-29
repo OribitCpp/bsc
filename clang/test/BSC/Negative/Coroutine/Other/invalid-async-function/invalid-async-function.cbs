@@ -1,0 +1,13 @@
+// RUN: %clang_cc1 -internal-isystem %S/../../../../../../lib/Headers/bsc_include -verify %s 
+
+#include "../../async-func-read-opposite.hbs"
+
+async trait Future<int>* f1() { // expected-error {{function which returns 'Future' type should not be modified by 'async'}}
+    trait Future<int>* f;
+    int a = await read(1);
+    return f;
+}
+
+int main() {
+  return 0;
+}

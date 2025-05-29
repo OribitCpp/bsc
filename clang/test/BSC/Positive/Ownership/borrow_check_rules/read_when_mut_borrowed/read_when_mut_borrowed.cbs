@@ -1,0 +1,24 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include <stdio.h>
+
+struct Foo {
+  int a;
+};
+
+void use_immut(const struct Foo *borrow p) {
+  int b = p->a;
+}
+
+int main() {
+  struct Foo foo = {.a = 1};
+  const struct Foo *borrow foo_const_mut = &const foo;
+  printf("%d\n", foo.a);
+  use_immut(foo_const_mut);
+  return 0;
+}

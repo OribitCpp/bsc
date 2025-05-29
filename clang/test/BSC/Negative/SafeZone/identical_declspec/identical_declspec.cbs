@@ -1,0 +1,58 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+unsafe int add(int x, int y); // expected-note {{previous declaration is here}}
+safe int add(int x, int y) {  // expected-error {{conflicting types for 'add'}}
+  return x + y;
+}
+
+safe int g_a;   // expected-error {{'safe' can only appear before on function or compound statement}}
+safe struct b {  // expected-error {{'safe' can only appear before on function or compound statement}}
+  int a;
+};
+safe enum c {   // expected-error {{'safe' can only appear before on function or compound statement}}
+  TA,
+  TB,
+  TC
+};
+
+unsafe int (*pp)(int x, int y); // expected-note {{previous definition is here}}
+safe int (*pp)(int x, int y);  // expected-error {{redefinition of 'pp' with a different type: 'safe int (*)(int, int)' vs 'int (*)(int, int)'}}
+
+safe int safun(int x, int y) {
+  return 0;
+}
+unsafe int unfun(int x, int y) {
+  return 0;
+}
+int fun(int x, int y) {
+  return 0;
+}
+
+safe int (*sapfun)(int x, int y);
+unsafe int (*unpfun)(int x, int y);
+int (*pfun)(int x, int y);
+
+int main() {
+  unsafe int (*qq)(int x, int y); // expected-note {{previous definition is here}}
+  safe int (*qq)(int x, int y);   // expected-error {{redefinition of 'qq' with a different type: 'safe int (*)(int, int)' vs 'int (*)(int, int)'}}
+
+  sapfun = safun;
+  sapfun = unfun;   // expected-error {{incompatible function pointer types assigning to 'safe int (*)(int, int)' from 'int (int, int)'}}
+  sapfun = fun;     // expected-error {{incompatible function pointer types assigning to 'safe int (*)(int, int)' from 'int (int, int)'}}
+
+  unpfun = safun;   // expected-warning {{incompatible function pointer types assigning to 'int (*)(int, int)' from 'safe int (int, int)'}}
+  unpfun = unfun;
+  unpfun = fun;
+
+  pfun = safun;     // expected-warning {{incompatible function pointer types assigning to 'int (*)(int, int)' from 'safe int (int, int)'}}
+  pfun = unfun;
+  pfun = fun;
+
+safe {
+  unpfun = safun;   // expected-error {{incompatible function pointer types assigning to 'int (*)(int, int)' from 'safe int (int, int)'}}
+  unpfun = unfun;
+  unpfun = fun;
+}
+
+return 0;
+}

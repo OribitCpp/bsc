@@ -1,0 +1,21 @@
+// RUN: %clang_cc1 -verify %s
+
+enum E {
+    X3,
+    X4
+};
+
+typedef enum E F;
+int F::getA(enum E* this) { // expected-note {{previous definition is here}}
+  return X4;
+}
+
+int enum E::getA(F* this) { // expected-error {{redefinition of 'getA'}}
+  return X4;
+}
+
+
+int main() {
+
+  return 0;
+}

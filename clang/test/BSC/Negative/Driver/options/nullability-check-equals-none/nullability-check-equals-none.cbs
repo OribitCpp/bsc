@@ -1,0 +1,7 @@
+// RUN: %clang -nullability-check=none %s -o %t.output
+// RUN: %t.output
+
+safe int main(void) {
+    int *borrow _Nonnull p1 = nullptr;
+    return 0;
+}

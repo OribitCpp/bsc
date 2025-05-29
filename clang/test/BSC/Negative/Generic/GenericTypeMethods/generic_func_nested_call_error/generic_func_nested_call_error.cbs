@@ -1,0 +1,20 @@
+// RUN: %clang_cc1 -verify %s
+
+struct MyStruct<T> { // expected-note {{'MyStruct' declared here}}
+    T res;
+};
+
+T struct MyStruct<T>::foo(struct MyStruct<T> *this, T a) {
+    this->res = a;
+    return this->res;
+}
+
+T f1<T>(T a) {
+    struct MyStruct<T> s = {.res = a};
+    return struct MyStruct11<T>::foo(&s, a); // expected-error {{no template named 'MyStruct11'; did you mean 'MyStruct'?}}
+}
+
+int main() {
+    int res1 = f1<int>(2);
+    return res1;
+}

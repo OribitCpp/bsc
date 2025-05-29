@@ -1,0 +1,62 @@
+// RUN: %clang_cc1 -verify %s
+
+safe void foo1(int *borrow a);
+safe void test1(void) {
+    int a = 10;
+    int *borrow p1 = &mut a;
+    foo1(p1);
+    int *borrow _Nullable p2 = &mut a;
+    foo1(p2);
+    int *borrow _Nullable p3 = nullptr;
+    foo1(p3);  // expected-error {{cannot pass nullable pointer argument}}
+    foo1(&mut a);
+    foo1(nullptr); // expected-error {{cannot pass nullable pointer argument}}
+}
+
+safe int *owned safe_malloc(int a);
+safe void foo2(int *owned a);
+safe void test2(void) {
+    int *owned p1 = safe_malloc(5);
+    foo2(p1);
+    int *owned _Nullable p2 = safe_malloc(5);
+    foo2(p2);
+    int *owned _Nullable p3 = nullptr;
+    foo2(p3);   // expected-error {{cannot pass nullable pointer argument}}
+    foo2(safe_malloc(5));
+    foo2(nullptr); // expected-error {{cannot pass nullable pointer argument}}
+}
+
+safe void foo3(int *borrow _Nullable a);
+safe void test3(void) {
+    int a = 10;
+    int *borrow p1 = &mut a;
+    foo3(p1);
+    int *borrow _Nullable p2 = &mut a;
+    foo3(p2);
+    int *borrow _Nullable p3 = nullptr;
+    foo3(p3);
+    foo3(nullptr);
+}
+
+safe void foo4(int *owned _Nullable a);
+safe void test4(void) {
+    int *owned p1 = safe_malloc(5);
+    foo4(p1);
+    int *owned _Nullable p2 = safe_malloc(5);
+    foo4(p2);
+    int *owned _Nullable p3 = nullptr;
+    foo4(p3);
+    foo4(nullptr);
+}
+
+safe void test5(void) {
+    int a = 10;
+    int *borrow _Nullable p1 = a == 1 ? nullptr : &mut a;
+    foo1(p1); // expected-error {{cannot pass nullable pointer argument}}
+    foo1(a == 1 ? nullptr : &mut a); // expected-error {{cannot pass nullable pointer argument}}
+
+    int b = 10;
+    int *borrow _Nullable p2 = a == 1 && b == 10 ? &mut b : &mut a;
+    foo1(p2);
+    foo1(a == 1 && b == 10 ? &mut b : &mut a);
+}

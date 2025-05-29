@@ -1,0 +1,161 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+int x = 0;
+owned struct A<T>{
+    ~A(A<T> this) {
+      x++;
+    }
+};
+int y = 1;
+ owned struct B<T> {
+ public:
+     A<int> a;
+    ~B(B<T> this) { 
+      y++;
+      A<int> a ={};
+    }
+};
+
+owned struct C<T> {
+public:
+  T elem;
+  ~C(C<T> this) {}
+};
+
+int C<T>::f(C<T>* borrow this, B<T> x) {
+  B<T> z = x;
+  return 1;
+}
+
+int f<T>(B<T> x){
+    B<T> z = x;
+   return 1; 
+}
+
+void test() {
+   A<int> a= {};
+   B<int> b={a};
+   f<int>(b);
+}
+
+void test1() {
+   A<int> a= {};
+   B<int> b={a};
+   C<int> c = {};
+   c.f(b);
+}
+
+int main(void) {
+   test();
+   return x-y;
+}
+
+// CHECK:      struct A_int {
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct C_int {
+// CHECK-NEXT:   int elem;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct B_int {
+// CHECK-NEXT:   struct A_int a;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_A_int_D( struct A_int this);
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_B_int_D( struct B_int this);
+// CHECK-EMPTY:
+// CHECK-NEXT: static int struct_C_int_f( struct C_int * this,  struct B_int x);
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_C_int_D( struct C_int this);
+// CHECK-EMPTY:
+// CHECK-NEXT: static int f_int( struct B_int x);
+// CHECK-EMPTY:
+// CHECK-NEXT: int x = 0;
+// CHECK-EMPTY:
+// CHECK-NEXT: int y = 1;
+// CHECK-EMPTY:
+// CHECK-NEXT: void test(void) {
+// CHECK-NEXT:    struct A_int a = {};
+// CHECK-NEXT:   _Bool a_is_moved = 0;
+// CHECK-NEXT:    struct B_int b = {a};
+// CHECK-NEXT:   _Bool b_is_moved = 0;
+// CHECK-NEXT:   a_is_moved = 1;
+// CHECK-NEXT:   f_int(b);
+// CHECK-NEXT:   b_is_moved = 1;
+// CHECK-NEXT:   if (!b_is_moved)
+// CHECK-NEXT:     struct_B_int_D(b);
+// CHECK-NEXT:   if (!a_is_moved)
+// CHECK-NEXT:     struct_A_int_D(a);
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void test1(void) {
+// CHECK-NEXT:    struct A_int a = {};
+// CHECK-NEXT:   _Bool a_is_moved = 0;
+// CHECK-NEXT:    struct B_int b = {a};
+// CHECK-NEXT:   _Bool b_is_moved = 0;
+// CHECK-NEXT:   a_is_moved = 1;
+// CHECK-NEXT:    struct C_int c = {};
+// CHECK-NEXT:   _Bool c_is_moved = 0;
+// CHECK-NEXT:   struct_C_int_f(&c, b);
+// CHECK-NEXT:   b_is_moved = 1;
+// CHECK-NEXT:   if (!c_is_moved)
+// CHECK-NEXT:     struct_C_int_D(c);
+// CHECK-NEXT:   if (!b_is_moved)
+// CHECK-NEXT:     struct_B_int_D(b);
+// CHECK-NEXT:   if (!a_is_moved)
+// CHECK-NEXT:     struct_A_int_D(a);
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:   test();
+// CHECK-NEXT:   return x-y;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_A_int_D( struct A_int this) {
+// CHECK-NEXT:   _Bool this_is_moved = 0;
+// CHECK-NEXT:   x++;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_B_int_D( struct B_int this) {
+// CHECK-NEXT:   _Bool this_is_moved = 0;
+// CHECK-NEXT:   y++;
+// CHECK-NEXT:    struct A_int a = {};
+// CHECK-NEXT:   _Bool a_is_moved = 0;
+// CHECK-NEXT:   if (!a_is_moved)
+// CHECK-NEXT:     struct_A_int_D(a);
+// CHECK-NEXT:   struct_A_int_D(this.a);
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static int struct_C_int_f( struct C_int * this,  struct B_int x) {
+// CHECK-NEXT:   _Bool x_is_moved = 0;
+// CHECK-NEXT:    struct B_int z = x;
+// CHECK-NEXT:   _Bool z_is_moved = 0;
+// CHECK-NEXT:   x_is_moved = 1;
+// CHECK-NEXT:   if (!z_is_moved)
+// CHECK-NEXT:     struct_B_int_D(z);
+// CHECK-NEXT:   if (!x_is_moved)
+// CHECK-NEXT:     struct_B_int_D(x);
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_C_int_D( struct C_int this) {
+// CHECK-NEXT:   _Bool this_is_moved = 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static int f_int( struct B_int x) {
+// CHECK-NEXT:   _Bool x_is_moved = 0;
+// CHECK-NEXT:    struct B_int z = x;
+// CHECK-NEXT:   _Bool z_is_moved = 0;
+// CHECK-NEXT:   x_is_moved = 1;
+// CHECK-NEXT:   if (!z_is_moved)
+// CHECK-NEXT:     struct_B_int_D(z);
+// CHECK-NEXT:   if (!x_is_moved)
+// CHECK-NEXT:     struct_B_int_D(x);
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }
+

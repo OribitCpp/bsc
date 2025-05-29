@@ -1,0 +1,33 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+
+union D {
+    owned int a;  //expected-error {{type of union field cannot qualified by 'owned'}}
+};
+
+
+typedef union E {
+    int a;
+}EE;
+
+int main() {
+    owned union E e = {.a = 10};  //expected-error {{'union E' cannot be qualified by 'owned'}}
+    owned EE ee = {.a = 10};    //expected-error {{'EE' (aka 'union E') cannot be qualified by 'owned'}}
+    return 0;
+}
+
+union A {
+    owned int* a;
+};
+
+typedef owned int ownedInt;
+union B {
+    ownedInt a; //expected-error {{type of union field cannot qualified by 'owned', 'ownedInt' (aka 'owned int') contains 'owned' type}}
+};
+
+struct S {
+    owned int num;
+};
+
+union C {
+    struct S* s1;
+};

@@ -1,0 +1,19 @@
+// RUN: %clang_cc1 -verify %s
+// expected-no-diagnostics
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+void * owned pmalloc(unsigned long long a) {
+    void * addr;
+    return (void * owned)addr;
+}
+
+void * owned case1() {
+    void * owned a = pmalloc(sizeof(int));
+    return a;
+}
+
+int main() { return 0; }

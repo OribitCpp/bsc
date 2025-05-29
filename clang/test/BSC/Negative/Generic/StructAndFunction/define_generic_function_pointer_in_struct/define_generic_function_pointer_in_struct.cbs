@@ -1,0 +1,22 @@
+// RUN: %clang_cc1  -verify %s
+// expected-no-diagnostics
+
+struct S<T> {};
+
+struct F1 {
+    struct S<unsigned int>(*p1)();
+    struct S<unsigned>(*p2)();
+    struct S<short>(*p3)();
+    struct S<short int>(*p4)();
+};
+
+struct F2<T> {
+    struct S<T>(*p5)();
+};
+
+int main() {
+    struct F1 f1;
+    struct F2<unsigned> f2;
+    struct F2<unsigned int> f3;
+    return 0;
+}

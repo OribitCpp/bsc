@@ -1,0 +1,65 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang_cc1 %t-rw.c -o %t-rw.output
+// expected-no-diagnostics
+
+long long int::getA() {
+  return 1;
+};
+
+long long int int::getB() {
+  return 1;
+};
+
+short long int::getC() {
+  return 1;
+}
+
+long long int int unsigned::getD() {
+  return 1;
+}
+
+long long int unsigned int::getE() {
+  return 1;
+}
+
+long int long int::getF() {
+  return 1;
+}
+
+long int signed signed long int::getG() {
+  return 1;
+}
+
+int main() {
+  return 0;
+};
+
+// CHECK: long long int_getA(void) {
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }
+
+// CHECK: long long int_getB(void) {
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }
+
+// CHECK: short long_getC(void) {
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }
+
+// CHECK: long long unsigned_int_getD(void) {
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }
+
+// CHECK: unsigned long long int_getE(void) {
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }
+
+// CHECK: long long int_getF(void) {
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }
+
+// CHECK: long long_getG(void) {
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }

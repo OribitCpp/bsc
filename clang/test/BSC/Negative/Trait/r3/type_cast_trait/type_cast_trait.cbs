@@ -1,0 +1,25 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait TR1{
+  void f1(This* this);
+};
+
+void int::f1(int* this) {}
+
+impl trait TR1 for int;
+
+void baz(trait TR1* tr) {
+  tr->f1();
+}
+
+int main() {
+  int y = 41;
+  baz(y); // expected-error {{expected a pointer type which has implemented 'trait TR1', found 'int'}}
+  baz((trait TR1)&y); // expected-error {{used type 'trait TR1' where arithmetic or pointer type is required}}
+
+  trait TR1* tr1 = (trait TR1*)&y;
+  baz(*tr1); // expected-error {{indirection requires pointer operand ('trait TR1 *' invalid)}}
+
+  ((trait TR1)&y)->f1(); // expected-error {{used type 'trait TR1' where arithmetic or pointer type is required}}
+  return 0;
+}

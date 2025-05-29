@@ -1,0 +1,30 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+struct R {
+   int num;
+   int * borrow p1;
+   const int * borrow p2;
+};
+struct R_wrap {
+   struct R r;
+};
+
+void test() {
+  int a = 1;
+  int b = 1;
+  int * borrow b1; // expected-error {{variable declarations of borrow qualified must be initialized}}
+  const int * borrow b2; // expected-error {{variable declarations of borrow qualified must be initialized}}
+  int * borrow * b3; // expected-error {{variable declarations of borrow qualified must be initialized}}
+  int * borrow b4 = &mut a; // legal
+  const int * borrow b5 = &const b; // legal
+  int borrow * b6 = &mut a; // expected-error {{borrow type requires a pointer or reference ('int' is invalid)}}
+                            // expected-error@-1 {{incompatible borrow types, cannot cast 'int *borrow' to 'borrow int *'}}
+  struct R r; // expected-error {{variable declarations of borrow qualified must be initialized}}
+  struct R *pr; // expected-error {{variable declarations of borrow qualified must be initialized}}
+  struct R **ppr; // expected-error {{variable declarations of borrow qualified must be initialized}}
+  struct R_wrap rw; // expected-error {{variable declarations of borrow qualified must be initialized}}
+  struct R_wrap *prw; // expected-error {{variable declarations of borrow qualified must be initialized}}
+  struct R r1 = { .num = 1 }; // expected-error {{variable declarations of borrow qualified must be initialized}}
+  struct R r2 = { 1, b1, b2 }; // legal
+  struct R r3 = { .p1 = b1, .p2 = b2}; // legal
+  struct R r4 = { 1, b1 }; // expected-error {{variable declarations of borrow qualified must be initialized}}
+}

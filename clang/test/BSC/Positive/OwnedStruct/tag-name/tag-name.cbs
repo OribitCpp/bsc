@@ -1,0 +1,25 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+owned struct A {};
+
+struct B{
+    A a; // OK
+};
+
+owned struct C {
+    A a; // OK
+};
+
+A f(A a) {
+    A b = {};
+    return b;
+}
+
+int main() {
+    A b; 
+    return 0;
+}

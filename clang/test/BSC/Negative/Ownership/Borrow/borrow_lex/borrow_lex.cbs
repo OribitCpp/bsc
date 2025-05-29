@@ -1,0 +1,18 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+
+
+void test() {
+    int x = 0;
+    int* xp = &x;
+    float y = 1.0;
+    float* yp = &y;
+    int *borrow p1 = &mut x;            // legal
+    int *borrow p2 = & mut x;           // expected-error {{use of undeclared identifier 'mut'}}; 
+                                        // expected-error@-1 {{expected ';' at end of declaration}}
+    int *borrow p3 = &mut *xp;          // legal
+    int *borrow p4 = & mut *xp;         // expected-error {{use of undeclared identifier 'mut'}}; 
+    const float * borrow p5 = &const y;   // legal
+    const float * borrow p6 = & const y;  // expected-error {{expected expression}}
+    const float * borrow p7 = &const *yp; // legal
+    const float * borrow p8 = & const *yp; // expected-error {{expected expression}}
+}

@@ -1,0 +1,49 @@
+// RUN: %clang_cc1 -verify %s
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+struct queue {
+};
+
+void struct queue::isEmpty(struct queue* this){}
+
+struct Scheduler {
+    struct queue* que;
+
+};
+
+void struct Scheduler::run(struct Scheduler* this) {
+      this->que->isEmpty();
+      (*this->que).isEmpty();
+}
+
+int main() {
+    struct Scheduler s;
+    s.run();
+    return 0;
+}
+
+// CHECK:      struct queue {
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct Scheduler {
+// CHECK-NEXT:   struct queue* que;
+// CHECK-EMPTY:
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_queue_isEmpty(struct queue *this) {
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_Scheduler_run(struct Scheduler *this) {
+// CHECK-NEXT:   struct_queue_isEmpty(this->que);
+// CHECK-NEXT:   struct_queue_isEmpty(&(*this->que));
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:   struct Scheduler s;
+// CHECK-NEXT:   struct_Scheduler_run(&s);
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }

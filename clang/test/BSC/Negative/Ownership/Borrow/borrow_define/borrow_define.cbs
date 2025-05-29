@@ -1,0 +1,30 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+struct R {
+   int num;
+   int borrow p1; // expected-error {{borrow type requires a pointer or reference ('int' is invalid)}}
+   const int borrow p2; // expected-error {{borrow type requires a pointer or reference ('int' is invalid)}}
+};
+void f(int borrow a); // expected-error {{borrow type requires a pointer or reference ('int' is invalid)}}
+void f1<T>(const int borrow a) {} // expected-error {{borrow type requires a pointer or reference ('int' is invalid)}}
+void f2<T>(T * borrow a) {}; // legal
+
+void test() {
+  int a = 1;
+  int borrow b1; // expected-error {{borrow type requires a pointer or reference ('int' is invalid)}}
+                 // expected-error@-1 {{variable declarations of borrow qualified must be initialized}}
+  const int borrow b2 = 10; // expected-error {{borrow type requires a pointer or reference ('int' is invalid)}}
+                            // expected-error@-1 {{incompatible borrow types, cannot cast 'int' to 'const borrow int'}}
+  int borrow * b3; // expected-error {{borrow type requires a pointer or reference ('int' is invalid)}}
+                   // expected-error@-1 {{variable declarations of borrow qualified must be initialized}}
+  const int borrow * b4; // expected-error {{borrow type requires a pointer or reference ('int' is invalid)}}
+                         // expected-error@-1 {{variable declarations of borrow qualified must be initialized}}
+  f2<int>(&mut a);
+}
+
+trait F {};
+trait F1<T> {};
+impl trait F for int * borrow; // expected-error {{expected ';' at end of declaration}}
+                               // expected-error@-1 {{expected identifier or '('}}
+impl trait F<int> for int * borrow; // expected-error {{expected ';' at end of declaration}}
+                               // expected-error@-1 {{expected identifier or '('}}
+                               // expected-error@-2 {{explicit specialization of undeclared template trait 'F'}}

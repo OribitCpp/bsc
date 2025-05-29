@@ -1,0 +1,17 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F<T> { // expected-note {{declared here}}
+  T foo(This* this);
+};
+
+int int::foo(int* this) {
+  return 0;
+}
+
+impl trait F<int> for int;
+
+int main() {
+  int a = 1;
+  trait F* f = (trait F*)&a; // expected-error {{template 'F' cannot be referenced with a trait specifier}}
+  return f->foo(); // expected-error {{use of undeclared identifier 'f'}}
+}

@@ -1,0 +1,29 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+owned struct A<T> {
+public:
+    int a;
+};
+
+owned struct B<T> {
+public:
+    char *b;
+};
+
+owned struct S<T> {
+public:
+    A<T> a;
+    B<T> b;
+};
+
+int main() {
+    char x = 'a';
+    A<int> a = {1};
+    B<int> b = {&x};
+    S<int> s = {a, b};
+    return 0;
+}

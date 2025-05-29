@@ -1,0 +1,145 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+#define NULL ((void*)0)
+
+safe T max_a<T>(T a, T b) {
+  return a > b ? a : b;
+}
+
+safe T max_b<T>(T a, T b) {
+  return a > b ? a : b;
+}
+
+safe T max_c<T>(T a, T b) {     // expected-error{{unsafe return type is forbidden in the safe function}}
+                                // expected-error@-1{{unsafe parameter type is forbidden in the safe function}}
+                                // expected-error@-2{{unsafe parameter type is forbidden in the safe function}}
+  return a > b ? a : b;
+}
+
+void genericFun(){
+  int a = 1;
+  double b = 2.0;
+  int c = max_a<int>(1, 2); // ok
+  int* owned p = (int* owned)&a;
+  int* owned q = (int* owned)&a;
+  int* owned m = max_b<int* owned>(p, q); // OK
+  int *n = max_c<void *>((void*)0, (void *)0); // expected-note{{in instantiation of function template specialization 'max_c<void *>' requested here}}
+
+}// expected-error {{memory leak of value: `m`}}
+
+safe int* foo_a<T>(int* a, T b) {   // expected-error{{unsafe return type is forbidden in the safe function}}
+                                    // expected-error@-1{{unsafe parameter type is forbidden in the safe function}}
+  return a > b ? a : b;
+}
+
+safe int* foo_b<T>(int* a, T b) {   // expected-error{{unsafe return type is forbidden in the safe function}}
+                                    // expected-error@-1{{unsafe parameter type is forbidden in the safe function}}
+  return a > b ? a : b;
+}
+
+safe T moo_a<T>(T a) {
+  a();       // expected-error{{unsafe function call is forbidden in the safe zone}}
+  return a;
+}
+
+safe T moo_b<T>(T a) {
+  a();
+  return a;
+}
+
+safe T moo_c<T>(T a) {
+  a();         // expected-error{{unsafe function call is forbidden in the safe zone}}
+  unsafe {
+    a();       // ok
+    safe {
+      a();     // expected-error{{unsafe function call is forbidden in the safe zone}}
+    }
+    unsafe {
+      a();     // ok
+    }
+  }
+  safe {
+    a();       // expected-error{{unsafe function call is forbidden in the safe zone}}
+    unsafe {
+      a();     // ok
+    }
+    safe {
+      a();     // expected-error{{unsafe function call is forbidden in the safe zone}}
+    }
+  }
+  return a;
+}
+
+
+void unsafeFun() {};
+safe void safeFun(void) {};
+void (*unsafeFunPoint)();
+
+int test_generic_type_fun() {
+  moo_a(unsafeFun);           // expected-note{{in instantiation of function template specialization 'moo_a<void (*)(void)>' requested here}}
+  moo_b(safeFun);             // OK
+  moo_c(unsafeFunPoint);      // expected-note{{in instantiation of function template specialization 'moo_c<void (*)(void)>' requested here}}
+
+}
+
+safe T poo_a<T>(T a) {
+  if (*a) {
+    return a;
+  }
+  return a;
+}
+
+safe T poo_b<T>(T a) {    // expected-error{{unsafe return type is forbidden in the safe function}}
+                          // expected-error@-1{{unsafe parameter type is forbidden in the safe function}}
+  if (*a) {               // expected-error{{'*' operator is forbidden in the safe zone}}
+    return a;
+  }
+  return a;
+}
+
+safe T poo_c<T>(T a) {
+  if (*a) {
+    return a;
+  }
+  return a;
+}
+
+int test_generic_type_point() {
+  int a = 1;
+  int *p;
+  int* owned q = (int* owned)&a;
+  int* m = poo_b(p);         // expected-note{{in instantiation of function template specialization 'poo_b<int *>' requested here}}
+  int* owned n = poo_c(q);
+  return 0;
+}
+
+void diffPointCastConver<T>(void) {
+  unsafe {
+    T *a = NULL;
+    safe {
+      void *b = a;  // expected-error{{conversion from type 'int *' to 'void *' is forbidden in the safe zone}}
+      T *c = b;   // expected-error{{conversion from type 'void *' to 'int *' is forbidden in the safe zone}}
+    }
+  }
+}
+
+safe T qoo_a<T>(void)
+{
+  T a = 1.0;
+  float b = a;  // expected-error{{conversion from type 'double' to 'float' is forbidden in the safe zone}}
+  return a;
+}
+
+safe T qoo_b<T>(void)
+{
+  T a = 1.0;
+  float b = a;
+  return a;
+}
+
+int main() {
+  diffPointCastConver<int>();  // expected-note{{in instantiation of function template specialization 'diffPointCastConver<int>' requested here}}
+  qoo_a<double>();             // expected-note{{in instantiation of function template specialization 'qoo_a<double>' requested here}}
+  qoo_b<float>();              // ok
+  return 0;
+}

@@ -1,0 +1,21 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F<T> {
+  T foo(This* this);
+};
+
+int int::foo(int* this) {
+  return 0;
+}
+
+impl trait F<int> for int;
+
+trait F<int>* get(trait F<int>* f) {
+  return f;
+};
+
+int main() {
+  int a = 1;
+  int b = get(&a); // expected-error {{initializing 'int' with an expression of incompatible type 'trait F<int> *'}}
+  return 0;
+}

@@ -1,0 +1,9 @@
+// RUN: %clang_cc1 -verify %s
+
+void int::increase(int* this) { // expected-note {{'increase' declared here}}
+}
+
+int main() {
+    int::increase(); // expected-error {{too few arguments to function call, single argument 'this' was not specified}}
+    return 0;
+}

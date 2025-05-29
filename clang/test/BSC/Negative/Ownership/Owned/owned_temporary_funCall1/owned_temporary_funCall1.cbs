@@ -1,0 +1,67 @@
+// RUN: %clang_cc1 -verify %s
+
+typedef struct {
+    int a;
+    int* owned p;
+} ownedA;
+
+typedef struct {
+    int a;
+    int* p;
+} A;
+
+// normal callexpr
+int func1(int a) { return a; }
+
+void test1(int a) {
+    func1(a);   //legal
+    return;
+}
+
+//owned callexpr
+int* owned func2(int* owned a) { return a; }
+
+void test2(int* owned a, int* owned b) {
+    int* owned res1 = func2(a);
+    int* owned res2 = func2(func2(b));
+    func2(res1);   // expected-error {{memory leak because temporary variable 'func2(res1)' is owned or indirect owned type, please fix it}}
+    func2(func2(res2));    // expected-error {{memory leak because temporary variable 'func2(func2(res2))' is owned or indirect owned type, please fix it}}
+    return;
+
+}
+
+typedef int* owned MyIntPtr;
+
+MyIntPtr func3(MyIntPtr a) { return a; }
+
+void test3(MyIntPtr a) {
+    func3(a);   // expected-error {{memory leak because temporary variable 'func3(a)' is owned or indirect owned type, please fix it}}
+    return;
+}
+
+ownedA func4(ownedA a) { return a; }
+void test4(ownedA a) {
+    func4(a);   // expected-error {{memory leak because temporary variable 'func4(a)' is owned or indirect owned type, please fix it}}
+    int b; func4(a); int c;    // expected-error {{memory leak because temporary variable 'func4(a)' is owned or indirect owned type, please fix it}}
+    return;
+}
+
+// member func
+typedef struct {
+    int a;
+} C;
+
+typedef struct {
+    int owned db;
+    int db2;
+} D;
+
+D C::createD(This* this) {
+    D d2 = {.db=(int owned)this->a, .db2=this->a};
+    return d2;
+}
+
+
+void test5(C c1) {
+    c1.createD();   // // expected-error {{memory leak because temporary variable 'C_createD(&c1)' is owned or indirect owned type, please fix it}}
+}

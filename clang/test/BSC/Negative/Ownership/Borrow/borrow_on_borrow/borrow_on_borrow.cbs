@@ -1,0 +1,56 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+struct R {
+   int num;
+   int * borrow p1;
+};
+
+void test() {
+  int a = 1;
+  int b = 1;
+  int *borrow p1 = &mut a; // legal
+  const int *borrow p2 = &const b; // legal
+  int *borrow * borrow b1 = &mut p1; // expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}
+  const int *borrow const * borrow b2 = &const p2; /* expected-error {{incompatible borrow types, cannot cast 'const int *borrow *borrow' to 'const int *const borrow *borrow'}}
+                                                      expected-error {{'&const' on a 'borrow' quialified type is not allowed}} */
+  int *borrow const * borrow b3 = &const p1; /* expected-error {{incompatible borrow types, cannot cast 'const int *borrow *borrow' to 'int *const borrow *borrow'}}
+                                                expected-error {{'&const' on a 'borrow' quialified type is not allowed}} */
+  const int * borrow * borrow b4 = &mut p2; // expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}
+  int *borrow *borrow p3 = &mut (&mut a);  // expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}  expected-error {{cannot take the address of an rvalue of type 'int *borrow'}}
+  const int *borrow *borrow p4 = &mut (&const b); // expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}  expected-error {{cannot take the address of an rvalue of type 'const int *borrow'}}
+  const int *borrow const * borrow p5 = &const (&const b);  /* expected-error {{cannot take the address of an rvalue of type 'const int *borrow'}}
+                                                               expected-error {{'&const' on a 'borrow' quialified type is not allowed}} */
+  int *borrow const * borrow p6 = &const (&mut a); /* expected-error {{cannot take the address of an rvalue of type 'int *borrow'}}
+                                                      expected-error {{'&const' on a 'borrow' quialified type is not allowed}} */
+  int *borrow *borrow *borrow p7 = &mut (&mut (&mut a));  /* expected-error {{cannot take the address of an rvalue of type 'int *borrow'}}
+                                                             expected-error {{'&mut' on a 'borrow' quialified type is not allowed}} */
+  const int *borrow *borrow *borrow p8 = &mut (&mut (&const a));  /* expected-error {{cannot take the address of an rvalue of type 'const int *borrow'}}
+                                                                     expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}*/
+  &mut p1; /* expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}
+              expected-warning {{expression result unused}} */
+  &const p1;/* expected-error {{'&const' on a 'borrow' quialified type is not allowed}}
+               expected-warning {{expression result unused}} */
+  &mut p2; /* expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}
+              expected-warning {{expression result unused}} */
+  &const p2; /* expected-error {{'&const' on a 'borrow' quialified type is not allowed}}
+                expected-warning {{expression result unused}} */
+  &mut (&mut a);   /* expected-error {{cannot take the address of an rvalue of type 'int *borrow'}}
+                      expected-error {{'&mut' on a 'borrow' quialified type is not allowed}} */
+  &const (&const b);/* expected-error {{cannot take the address of an rvalue of type 'const int *borrow'}}
+                       expected-error {{'&const' on a 'borrow' quialified type is not allowed}}*/
+  &mut (&mut a);/* expected-error {{cannot take the address of an rvalue of type 'int *borrow'}}
+                       expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}*/
+  &const (&const b); /* expected-error {{cannot take the address of an rvalue of type 'const int *borrow'}}
+                       expected-error {{'&const' on a 'borrow' quialified type is not allowed}}*/
+  &p1; // expected-warning {{expression result unused}}
+  &p2; // expected-warning {{expression result unused}}
+  & (&mut a);   // expected-error {{cannot take the address of an rvalue of type 'int *borrow'}}
+  & (&const b); // expected-error {{cannot take the address of an rvalue of type 'const int *borrow'}}
+
+  struct R r = { 1, &mut a };
+  struct R * borrow pr = &mut r; // expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}
+  const struct R * borrow pr2 = &const r; // expected-error {{'&const' on a 'borrow' quialified type is not allowed}}
+  &const r.p1; /* expected-error {{'&const' on a 'borrow' quialified type is not allowed}}
+                  expected-warning {{expression result unused}} */
+  &mut r.p1; /* expected-error {{'&mut' on a 'borrow' quialified type is not allowed}}
+                expected-warning {{expression result unused}} */
+}

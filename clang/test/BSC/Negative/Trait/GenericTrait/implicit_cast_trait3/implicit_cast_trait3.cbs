@@ -1,0 +1,21 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F<T> { // expected-note {{declared here}}
+  int foo(This* this);
+};
+
+trait F<int>* get() {
+  int a = 1;
+  return &a; // expected-error {{expected a pointer type which has implemented 'trait F<int>', found 'int'}}
+};
+
+int int::foo(int* this) {
+  return 0;
+}
+
+impl trait F<int> for int;
+
+int main() {
+  trait F* f = get(); // expected-error {{template 'F' cannot be referenced with a trait specifier}}
+  return 0;
+}

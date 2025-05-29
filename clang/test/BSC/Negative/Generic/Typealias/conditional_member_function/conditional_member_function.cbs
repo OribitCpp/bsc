@@ -1,0 +1,5 @@
+// RUN: %clang_cc1 -internal-isystem %S/../../../../../../lib/Headers/bsc_include -verify %s 
+
+#include "bsc_conditional.hbs"
+
+void conditional<int C, T, F>::foo(This* this) {} //expected-error{{extended type of a BSC member function cannot be a generic typealias}}

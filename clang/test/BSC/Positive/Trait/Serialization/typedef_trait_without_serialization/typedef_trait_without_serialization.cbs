@@ -1,0 +1,49 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// expected-no-diagnostics
+
+// Test without serialization:
+// RUN: %clang_cc1 -triple x86_64-unknown-unknown -ast-dump %s \
+// RUN: | FileCheck --strict-whitespace %s
+
+typedef trait F {
+    int foo(This* this, int a);
+}G;
+// CHECK: TraitDecl 0x{{[^ ]*}} <{{.*}}:[[@LINE-3]]:9, line:[[@LINE-1]]:1> line:[[@LINE-3]]:15
+// CHECK-NEXT: FunctionDecl 0x{{[^ ]*}} <line:[[@LINE-3]]:5, col:30> col:9 foo 'int (This *, int)'
+// CHECK-NEXT: ParmVarDecl 0x{{[^ ]*}} <col:13, col:19> col:19 this 'This *'
+// CHECK-NEXT: ParmVarDecl 0x{{[^ ]*}} <col:25, col:29> col:29 a 'int'
+// CHECK-NEXT: RecordDecl 0x{{[^ ]*}} <line:[[@LINE-7]]:9, col:15> col:15 struct __Trait_F_Vtable definition
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <line:[[@LINE-7]]:5, col:30> col:30 referenced foo 'int (*)(void *, int)'
+// CHECK-NEXT: RecordDecl 0x{{[^ ]*}} <line:[[@LINE-9]]:9, col:15> col:15 struct __Trait_F definition
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <col:9, col:15> col:15 referenced data 'void *'
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <col:9, col:15> col:15 referenced vtable 'struct __Trait_F_Vtable *
+// CHECK-NEXT: RecordDecl 0x{{[^ ]*}} <col:9, col:15> col:15 struct __Trait_F_Owned definition
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <col:9, col:15> col:15 data 'void *owned'
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <col:9, col:15> col:15 vtable 'struct __Trait_F_Vtable *'
+// CHECK-NEXT: RecordDecl 0x{{[^ ]*}} <col:9, col:15> col:15 struct __Trait_F_Borrow definition
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <col:9, col:15> col:15 data 'void *borrow'
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <col:9, col:15> col:15 vtable 'struct __Trait_F_Vtable *'
+// CHECK-NEXT: TypedefDecl 0x{{[^ ]*}} <col:1, line:[[@LINE-16]]:2> col:2 referenced G 'trait F':'trait F'
+// CHECK-NEXT: ElaboratedType 0x{{[^ ]*}} 'trait F' sugar
+// CHECK-NEXT: TraitType 0x{{[^ ]*}} 'trait F'
+// CHECK-NEXT: Trait 0x{{[^ ]*}} 'F'
+
+int int::foo(int *this, int a) {
+    return *this + a;
+}
+
+impl G for int;
+// CHECK: ImplTraitDecl 0x{{[^ ]*}} <line:[[@LINE-1]]:6, col:12> col:12 F 'int'
+// CHECK-NEXT: VarDecl 0x{{[^ ]*}} <col:6, col:12> col:12 __int_trait_F 'struct __Trait_F_Vtable':'struct __Trait_F_Vtable' cinit
+// CHECK-NEXT: InitListExpr 0x{{[^ ]*}} <col:6, col:12> 'struct __Trait_F_Vtable'
+// CHECK-NEXT: CStyleCastExpr 0x{{[^ ]*}} <col:6> 'int (*)(void *, int)' <BitCast>
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:6> 'int (*)(int *, int)' <FunctionToPointerDecay> part_of_explicit_cast
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:6> 'int (int *, int)' lvalue BSCMethod 0x{{[^ ]*}} 'foo' 'int (int *, int)'
+
+int main() {
+    int b = 2;
+    G* p = &b;
+    int a = p->foo(5);
+    return 0;
+}

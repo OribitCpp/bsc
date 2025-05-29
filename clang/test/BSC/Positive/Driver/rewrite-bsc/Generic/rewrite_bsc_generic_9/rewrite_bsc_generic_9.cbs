@@ -1,0 +1,36 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+struct A<T> {
+    T t;
+};
+
+struct Void {};
+
+struct B<T> { 
+    struct A<T> a; 
+};
+
+struct C {
+    struct B<struct Void> b;
+};
+
+int main() {}
+
+// CHECK:      struct Void {};
+// CHECK-EMPTY:
+// CHECK-NEXT: struct A_struct_Void {
+// CHECK-NEXT:   struct Void t;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct B_struct_Void {
+// CHECK-NEXT:   struct A_struct_Void a;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct C {
+// CHECK-NEXT:   struct B_struct_Void b;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: int main() {}

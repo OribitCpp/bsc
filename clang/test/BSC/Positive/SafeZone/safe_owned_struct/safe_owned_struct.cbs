@@ -1,0 +1,78 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -rewrite-bsc -line %s -o %t-rwline.c
+// RUN: FileCheck --input-file=%t-rwline.c %s --check-prefix=CHECK-L
+// expected-no-diagnostics
+
+#include <stdlib.h>
+
+owned struct Vec<T> {
+public:
+    T* ptr;
+    int len;
+    ~Vec(Vec<T> this) {
+        if (!this.ptr) free(this.ptr);
+    }
+};
+
+safe Vec<T> Vec<T>::new(void) {
+	unsafe {
+		Vec<T> v = { .ptr = NULL, .len = 0 };
+		return v;
+	}
+}
+// CHECK-L: #line 22 "{{.*}}.cbs"
+// CHECK-L-NEXT: static  struct Vec_int struct_Vec_int_new(void) {
+// CHECK-L-NEXT:   {
+// CHECK-L-NEXT:     struct Vec_int v = {.ptr = ((void *)0), .len = 0};
+// CHECK-L-NEXT:     _Bool v_is_moved = 0;
+// CHECK-L-NEXT:     return v;
+// CHECK-L-NEXT:   }
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 17 "{{.*}}.cbs"
+// CHECK-L-NEXT: static void struct_Vec_int_D( struct Vec_int this) {
+// CHECK-L-NEXT:   _Bool this_is_moved = 0;
+// CHECK-L-NEXT:   if (!this.ptr) 
+// CHECK-L-NEXT:     free(this.ptr);
+// CHECK-L-NEXT: }
+
+int main() {
+    Vec<int> v = Vec<int>::new();
+    return 0;
+}
+
+// CHECK:      struct Vec_int {
+// CHECK-NEXT:     int *ptr;
+// CHECK-NEXT:     int len;
+// CHECK-NEXT: };
+
+// CHECK: static  struct Vec_int struct_Vec_int_new(void);
+
+// CHECK: static void struct_Vec_int_D( struct Vec_int this);
+
+// CHECK:      int main(void) {
+// CHECK-NEXT:      struct Vec_int v = struct_Vec_int_new();
+// CHECK-NEXT:     _Bool v_is_moved = 0;
+// CHECK-NEXT:     if (!v_is_moved)
+// CHECK-NEXT:         struct_Vec_int_D(v);
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+
+// CHECK:      static  struct Vec_int struct_Vec_int_new(void) {
+// CHECK-NEXT:     {
+// CHECK-NEXT:          struct Vec_int v = {.ptr = ((void *)0), .len = 0};
+// CHECK-NEXT:         _Bool v_is_moved = 0;
+// CHECK-NEXT:         return v;
+// CHECK-NEXT:     }
+// CHECK-NEXT: }
+
+// CHECK:      static void struct_Vec_int_D( struct Vec_int this) {
+// CHECK-NEXT:     _Bool this_is_moved = 0;
+// CHECK-NEXT:     if (!this.ptr)
+// CHECK-NEXT:         free(this.ptr);
+// CHECK-NEXT: }

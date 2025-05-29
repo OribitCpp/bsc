@@ -1,0 +1,47 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../../../lib/Headers/bsc_include/future.hbs -o %T/future.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include "future.hbs"
+#include <stdlib.h>
+
+async int read(int a) {
+  return 0;
+}
+
+async int f(int start) {
+  char grade = 'B';
+  int class = -1;
+  int result = await read(1);
+  switch (grade) {
+  case 'A':
+    result = 1;
+    switch (class)
+    {
+    case -1:
+        result = -1;
+    }
+    break;
+  case 'B':
+  case 'C':
+    result = 2;
+    break;
+  case 'D':
+  case 'F':
+    result = 3;
+    break;
+  default:
+    result = -1;
+  }
+  return result;
+}
+
+int main() {
+  trait Future<int>* this = f(1);
+  this->poll();
+  return 0;
+}

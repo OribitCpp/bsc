@@ -1,0 +1,60 @@
+// RUN: %clang_cc1 -verify %s
+
+struct V {
+  int a;
+  int *b;
+};
+
+struct K {
+	struct V v;
+};
+
+void use_mut(int *borrow p);
+void use_immut(const int *borrow p);
+
+void test1() {
+  int local = 5;
+  struct V v = { .a = 5, .b = &local };
+  struct V *borrow p = &mut v;
+  int *borrow q1 = &mut p->a; // expected-note {{mutable borrow occurs here}}
+  int *borrow q2 = &mut *p->b; // expected-note {{mutable borrow occurs here}}
+  const int *borrow q3 = &const p->a; // expected-error {{cannot borrow `(*p).a` as immutable because it is also borrowed as mutable}}
+  const int *borrow q4 = &const *p->b; // expected-error {{cannot borrow `*(*p).b` as immutable because it is also borrowed as mutable}}
+  use_mut(q1);
+  use_mut(q2);
+  use_immut(q3);
+  use_immut(q4);
+
+  struct K k = { .v = v };
+  p = &mut k.v;
+  q1 = &mut p->a; // expected-note {{mutable borrow occurs here}}
+  q2 = &mut *p->b; // expected-note {{mutable borrow occurs here}}
+  q3 = &const p->a; // expected-error {{cannot borrow `(*p).a` as immutable because it is also borrowed as mutable}}
+  q4 = &const *p->b; // expected-error {{cannot borrow `*(*p).b` as immutable because it is also borrowed as mutable}}
+  use_mut(q1);
+  use_mut(q2);
+  use_immut(q3);
+  use_immut(q4);
+}
+
+void test2(struct V *borrow p) {
+  int *borrow q1 = &mut p->a; // expected-note {{mutable borrow occurs here}}
+  int *borrow q2 = &mut *p->b; // expected-note {{mutable borrow occurs here}}
+  const int *borrow q3 = &const p->a; // expected-error {{cannot borrow `(*p).a` as immutable because it is also borrowed as mutable}}
+  const int *borrow q4 = &const *p->b; // expected-error {{cannot borrow `*(*p).b` as immutable because it is also borrowed as mutable}}
+  use_mut(q1);
+  use_mut(q2);
+  use_immut(q3);
+  use_immut(q4);
+}
+
+void struct V::foo(This *borrow this) {
+  int *borrow q1 = &mut this->a; // expected-note {{mutable borrow occurs here}}
+  int *borrow q2 = &mut *this->b; // expected-note {{mutable borrow occurs here}}
+  const int *borrow q3 = &const this->a; // expected-error {{cannot borrow `(*this).a` as immutable because it is also borrowed as mutable}}
+  const int *borrow q4 = &const *this->b; // expected-error {{cannot borrow `*(*this).b` as immutable because it is also borrowed as mutable}}
+  use_mut(q1);
+  use_mut(q2);
+  use_immut(q3);
+  use_immut(q4);
+}

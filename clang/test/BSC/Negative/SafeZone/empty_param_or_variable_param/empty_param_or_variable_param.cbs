@@ -1,0 +1,23 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+safe void fun1() {}  // expected-error {{need void parameter declaration, empty parameter is forbidden in the safe function}}
+unsafe void fun2() {} 
+
+safe void fun1();    // expected-error {{need void parameter declaration, empty parameter is forbidden in the safe function}}
+unsafe void fun2();
+
+safe void (*p)();    // expected-error {{need void parameter declaration, empty parameter is forbidden in the safe function}}
+unsafe void (*q)();
+
+safe void fun3(void) {}
+safe void fun4(void);
+safe void (*p)(void); 
+
+safe void fun5(int a, ...) {}  // expected-error {{variadic parameter is forbidden in the safe function}}
+unsafe void fun6(int a, ...) {}
+
+safe void fun5(int a, ...);    // expected-error {{variadic parameter is forbidden in the safe function}}
+unsafe void fun6(int a, ...);
+
+safe void (*m)(int a, ...);   // expected-error {{variadic parameter is forbidden in the safe function}}
+unsafe void (*n)(int a, ...);

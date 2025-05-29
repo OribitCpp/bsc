@@ -1,0 +1,34 @@
+// REQUIRES: x86-registered-target
+// RUN: %clang -target x86_64 -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+char foo<char N>() {
+    return N;
+}
+
+int main() {
+    int a_0 = foo<5>();
+    int a_1 = foo<-5>();
+    return 0;
+}
+
+// CHECK: static char foo_5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static char foo_n5(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:int main(void) {
+// CHECK-NEXT:    int a_0 = foo_5();
+// CHECK-NEXT:    int a_1 = foo_n5();
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static char foo_5(void) {
+// CHECK-NEXT:    return '\x05';
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static char foo_n5(void) {
+// CHECK-NEXT:    return '\xfb';
+// CHECK-NEXT:}
+// CHECK-EMPTY:

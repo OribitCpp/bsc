@@ -1,0 +1,20 @@
+// RUN: %clang_cc1  -verify %s
+
+trait F {
+    int foo(This* this);
+};
+typedef MyF = trait F;
+impl MyF for int;  //expected-error{{function 'foo' in 'MyF' (aka 'trait F') is not implemented for 'int'}}
+
+trait G<T> {
+    T foo(This* this);
+};
+typedef MyG1 = trait G<int>;
+impl MyG1 for int;  //expected-error{{function 'foo' in 'MyG1' (aka 'G<int>') is not implemented for 'int'}}
+typedef MyG2<T> = trait G<T>;
+impl MyG2<int> for int;  //expected-error{{function 'foo' in 'MyG2<int>' (aka 'G<int>') is not implemented for 'int'}}
+impl MyG2<T> for int;  //expected-error{{use of undeclared identifier 'T'}}
+
+int main() {
+    return 0;
+}

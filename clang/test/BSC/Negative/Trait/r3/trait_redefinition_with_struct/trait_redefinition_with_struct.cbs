@@ -1,0 +1,13 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+
+struct A {};    // expected-note {{previous use is here}}
+trait A {}; // expected-error {{use of 'A' with tag type that does not match previous declaration}}
+
+union B {}; // expected-note {{previous use is here}}
+
+trait B {}; // expected-error {{use of 'B' with tag type that does not match previous declaration}}
+
+enum C {D}; // expected-note {{previous use is here}}
+
+trait C {}; // expected-error {{use of 'C' with tag type that does not match previous declaration}}

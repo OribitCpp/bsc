@@ -1,0 +1,28 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// This testcase enters C++ empty subobject tracking logic.
+
+#include "stdlib.h"
+
+#define MAX_SIZE 100
+
+struct Queue<T> {
+    T data[MAX_SIZE]; // nessasery condition 1
+};
+
+struct Task {
+
+};
+
+struct ThreadContext {
+    struct Queue<struct Task> localQueue; // nessasery condition 2
+};
+
+struct ThreadContext* getCurrentThreadContext( ) { // nessasery condition 3
+
+    return NULL; 
+}
+
+int main() {
+    return 0;
+}

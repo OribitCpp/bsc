@@ -1,0 +1,53 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F {
+  unsafe int foo(This* this);
+  unsafe int goo(This* this);
+  unsafe int* owned hoo(This* owned this);
+};
+
+trait G {
+  safe int* owned ioo(This* owned this);
+  safe int* owned joo(This* owned this);
+  safe int* owned koo(This* owned this);
+};
+
+unsafe int int::foo(int* this) { 
+  return 1;
+}
+
+int int::goo(int* this) {   // OK
+  return 1;
+}
+
+safe int* owned int::hoo(int* owned this) {   // OK
+  return this;
+}
+
+safe int* owned int::ioo(int* owned this) {  // OK
+  return this;
+}
+
+unsafe int* owned int::joo(int* owned this) {
+  return this;
+}
+
+int* owned int::koo(int* owned this) {
+  return this;
+}
+
+impl trait F for int; // expected-warning {{incompatible function pointer types initializing 'int *owned (*)(void *owned)' with an expression of type 'safe int *owned (*)(void *owned)'}}
+
+impl trait G for int; // expected-error {{incompatible function pointer types initializing 'safe int *owned (*)(void *owned)' with an expression of type 'int *owned (*)(void *owned)'}}
+                      // expected-error@-1 {{incompatible function pointer types initializing 'safe int *owned (*)(void *owned)' with an expression of type 'int *owned (*)(void *owned)'}}
+int main() {
+  int a = 1;
+  int *p = &a;
+  trait F* f = p;
+  safe {
+    f->goo();    // expected-error {{'->' operator used by raw pointer type is forbidden in the safe zone}}
+                    // expected-error@-1 {{unsafe function call is forbidden in the safe zone}}
+    int::foo(p); // expected-error {{unsafe function call is forbidden in the safe zone}}
+  }
+  return 0;
+}

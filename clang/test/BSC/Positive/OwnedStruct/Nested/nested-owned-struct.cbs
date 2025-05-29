@@ -1,0 +1,21 @@
+
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+
+owned struct A {  
+public:
+ owned struct B{
+  public:
+  ~B(B this){
+  }
+  int foo(B *this){return 1;}
+ } xx;
+   ~A(A this){
+   }
+};
+
+int main(void) {
+    A a= {};
+    int x= a.xx.foo();
+    return x-1;
+}

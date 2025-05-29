@@ -1,0 +1,32 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../lib/Headers/bsc_include/future.hbs -o %T/future.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include "future.hbs"
+#include <stdlib.h>
+
+static async int test() {
+  return 42;
+}
+
+async int f(int start) {
+  start = 3;
+  int a = await test();
+  return a + start;
+}
+
+async int g() {
+  int tmp = await f(3);
+  return 42;
+}
+
+int main() {
+  trait Future<int>* this = g();
+  this->poll();
+  this->free();
+  return 0;
+}

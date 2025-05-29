@@ -1,0 +1,41 @@
+// RUN: %clang -Eno-bsc-borrow -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// expected-no-diagnostics
+
+void test1() {
+  int local = 42;
+  int temp = 2;
+  int *borrow p1 = &mut local;
+  int *borrow p2 = &mut temp;
+  p2 = p1;
+  *p1 = 2; // cannot assign to `*p1` because it is borrowed
+  temp = *p2;
+}
+
+void use_mut(int *borrow p);
+void free_owned<T>(T* owned p);
+void test2(int* owned oriPtr) {
+  int *borrow p = &mut *oriPtr;
+  free_owned<int>(oriPtr); // cannot move out of `oriPtr` because it is borrowed
+  use_mut(p);
+}
+
+// CHECK:      static void free_owned_int(int * p);
+// CHECK-EMPTY: 
+// CHECK:      void test1(void) {
+// CHECK-NEXT:     int local = 42;
+// CHECK-NEXT:     int temp = 2;
+// CHECK-NEXT:     int * p1 = &local;
+// CHECK-NEXT:     int * p2 = &temp;
+// CHECK-NEXT:     p2 = p1;
+// CHECK-NEXT:     *p1 = 2;
+// CHECK-NEXT:     temp = *p2;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      void use_mut(int * p);
+// CHECK-EMPTY: 
+// CHECK:      void test2(int * oriPtr) {
+// CHECK-NEXT:     int * p = &*oriPtr;
+// CHECK-NEXT:     free_owned_int(oriPtr);
+// CHECK-NEXT:     use_mut(p);
+// CHECK-NEXT: }

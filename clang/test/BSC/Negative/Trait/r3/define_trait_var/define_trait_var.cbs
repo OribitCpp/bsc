@@ -1,0 +1,10 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F {
+  int foo(This* this);
+};
+
+int main() {
+  trait F a; // expected-error {{only trait pointer type is allowed to be declared}}
+  return 0;
+}

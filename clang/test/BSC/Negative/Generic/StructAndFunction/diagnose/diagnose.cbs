@@ -1,0 +1,10 @@
+// RUN: %clang_cc1 -verify %s
+
+T foo<T>(T a, T b { // expected-error {{expected ')'}} expected-note {{to match this '('}}
+  return a;
+}
+
+int main() {
+  int res = foo<int>(1, 2);
+  return 0;
+} // expected-error {{expected ';' at end of declaration}}

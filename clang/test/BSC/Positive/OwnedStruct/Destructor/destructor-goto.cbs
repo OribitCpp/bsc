@@ -1,0 +1,30 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+int y = 0;
+owned struct A {
+public:
+  ~A(A this) { y++; }
+};
+
+int test_goto() {
+  A a = {};
+  int x = 77;
+  {
+    goto E;
+    return 10;
+  }
+E : {
+  A c1 ={};
+}
+  return 11;
+}
+
+int main() {
+
+    test_goto();
+    return y-2;
+}

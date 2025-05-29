@@ -1,0 +1,34 @@
+// RUN: %clang_cc1 -w -ast-dump -verify %s
+
+int main()
+{
+    char chars[256];
+    chars['\A'] = 0;  chars['\~'] = 0;
+    chars['\B'] = 0;  chars['\!'] = 0;
+    chars['\c'] = 0;  chars['\C'] = 0;  chars['\"'] = 0;
+    chars['\d'] = 0;  chars['\D'] = 0;  chars['\#'] = 0;
+    chars['\e'] = 0;  chars['\E'] = 0;  chars['\%'] = 0;
+    chars['\F'] = 0;  chars['\&'] = 0;
+    chars['\g'] = 0;  chars['\G'] = 0;  chars['\('] = 0;
+    chars['\h'] = 0;  chars['\H'] = 0;  chars['\)'] = 0;
+    chars['\i'] = 0;  chars['\I'] = 0;  chars['\_'] = 0;
+    chars['\j'] = 0;  chars['\J'] = 0;  chars['\='] = 0;
+    chars['\k'] = 0;  chars['\K'] = 0;  chars['\-'] = 0;
+    chars['\l'] = 0;  chars['\L'] = 0;  chars['\^'] = 0;
+    chars['\m'] = 0;  chars['\M'] = 0;  chars['\|'] = 0;
+    chars['\N'] = 0; //expected-error {{expected '{' after '\N' escape sequence}}
+    chars['\o'] = 0;  chars['\O'] = 0;  chars['\{'] = 0;   //expected-error {{expected '{' after '\o' escape sequence}}
+    chars['\p'] = 0;  chars['\P'] = 0;  chars['\}'] = 0;
+    chars['\q'] = 0;  chars['\Q'] = 0;  chars['\['] = 0;
+    chars['\R'] = 0;  chars['\]'] = 0;
+    chars['\s'] = 0;  chars['\S'] = 0;  chars['\+'] = 0;
+    chars['\T'] = 0;  chars['\;'] = 0;
+    chars['\u'] = 0;  chars['\U'] = 0;  chars['\*'] = 0;  //expected-error {{\u used with no following hex digits}} //expected-error {{\U used with no following hex digits}}
+    chars['\V'] = 0;  chars['\:'] = 0;
+    chars['\w'] = 0;  chars['\W'] = 0;  chars['\<'] = 0;  chars['\ '] = 0;
+    chars['\x'] = 0;  chars['\X'] = 0;  chars['\>'] = 0; //expected-error {{\x used with no following hex digits}}
+    chars['\y'] = 0;  chars['\Y'] = 0;  chars['\,'] = 0;
+    chars['\z'] = 0;  chars['\Z'] = 0;  chars['\.'] = 0;
+                          chars['\?'] = 0;
+                          chars['\/'] = 0;
+}

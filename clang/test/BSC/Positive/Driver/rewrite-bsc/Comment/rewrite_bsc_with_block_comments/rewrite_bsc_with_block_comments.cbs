@@ -1,0 +1,27 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -I %S -o %t-rw.output
+// RUN: %t-rw.output
+
+/*#include <sys/epoll.h> */
+
+/*  211
+#include <stdio.h>
+            # include   <header.h>
+  #include<stdlib.h>
+*/
+#include <math.h>
+/****************#include <stdint.h>****************/
+/**     ada124sdq/., #include <errno.h>*/
+#include "rewrite_bsc_with_block_comments.h"
+int main() {
+  return 0;
+}
+
+// CHECK:      #include "rewrite_bsc_with_block_comments.h"
+// CHECK-NEXT: #include <math.h>
+// CHECK-EMPTY:
+// CHECK-EMPTY:
+// CHECK-NEXT: int main() {
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }

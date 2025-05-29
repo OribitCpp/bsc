@@ -1,0 +1,33 @@
+// %RUN: %clang_cc1 -verify %s
+
+T* owned malloc_owned<T>(T value);
+void free_owned<T>(T * owned p);
+void free_owned_new(void * owned p);
+
+typedef struct A {
+	int * owned a;
+} A;
+
+A * owned source(int x) {
+	int * owned i = malloc_owned<int>(2);
+	A b = { .a = i };
+	A * owned p = malloc_owned<A>(b);
+	return p;
+}
+
+void sink(A * owned p) {
+	free_owned(p);
+}
+
+void new_sink(A * owned p) {
+	free_owned_new((void * owned)p); // expected-error {{invalid cast to `void * owned` of not all moved value: `p`, p.a is owned}}
+}
+
+int main(int argc, char* argv[]) {
+	A * owned a = source(2);
+	if (argc == 1)	{
+		return 0; // expected-error {{memory leak of value: `a`}} expected-error {{field memory leak of value: `a`, a.a is leak}}
+	}
+	sink(a);
+	return 0;
+}

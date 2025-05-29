@@ -1,0 +1,37 @@
+// RUN: %clang_cc1 -verify %s
+
+// struct
+struct Foo {
+  int a;
+};
+
+int struct Foo::getA(int b, struct Foo* this) { // expected-error {{'this' cannot be the name of a parameter}}
+  return this->a;
+}
+
+// enum
+enum E {
+  X3,
+  X4
+};
+
+int enum E::getA(int b, enum E* this) { // expected-error {{'this' cannot be the name of a parameter}}
+  return X4;
+}
+
+// union
+union SimpleUnion {
+  float uf;
+  int ui;
+  char uc;
+};
+
+int union SimpleUnion::getA(int b, union SimpleUnion* this) { // expected-error {{'this' cannot be the name of a parameter}}
+  return this->ui;
+}
+
+// BuiltinType
+void int::increase(int b, int* this) { // expected-error {{'this' cannot be the name of a parameter}}
+  *this = *this + b;
+}
+

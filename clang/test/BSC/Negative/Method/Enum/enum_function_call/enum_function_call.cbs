@@ -1,0 +1,20 @@
+// RUN: %clang_cc1 -verify %s
+
+enum E {
+    X3,
+    X4
+};
+
+int enum E::getA() { 
+  return X4;
+}
+
+int main() {
+  enum E foo = X3; 
+  enum E *f = &foo;
+  foo.getA(); // expected-error {{no instance member named 'getA' in 'enum E'; did you mean to use '::' instead of '.'?}}
+              // expected-note@-1 {{found the following member function 'getA' which doesn't have a 'this' parameter}}
+  f->getA(); // expected-error {{no instance member named 'getA' in 'enum E'; did you mean to use '::' instead of '->'?}}
+             // expected-note@-1 {{found the following member function 'getA' which doesn't have a 'this' parameter}}
+  return 0;
+}

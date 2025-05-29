@@ -1,0 +1,79 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+owned struct S<T> {
+public:
+    int a1;
+    char a2;
+};
+
+
+S<T> S<T>::test() {
+  S<T> s = {}; // S是owned struct
+  S<T> s1 = {};
+  {
+    S<T> s2 = {};
+    {
+      S<T> s3 = {};
+      return s;
+    }
+  }
+  return s;
+}
+
+int main() {
+  S<int> x = S<int>::test();
+  return 0;
+}
+
+// CHECK:struct S_int {
+// CHECK-NEXT:    int a1;
+// CHECK-NEXT:    char a2;
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:static  struct S_int struct_S_int_test(void);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S_int_D( struct S_int this);
+// CHECK-EMPTY:
+// CHECK-NEXT:int main(void) {
+// CHECK-NEXT:     struct S_int x = struct_S_int_test();
+// CHECK-NEXT:    _Bool x_is_moved = 0;
+// CHECK-NEXT:    if (!x_is_moved)
+// CHECK-NEXT:        struct_S_int_D(x);
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static  struct S_int struct_S_int_test(void) {
+// CHECK-NEXT:     struct S_int s = {};
+// CHECK-NEXT:    _Bool s_is_moved = 0;
+// CHECK-NEXT:     struct S_int s1 = {};
+// CHECK-NEXT:    _Bool s1_is_moved = 0;
+// CHECK-NEXT:    {
+// CHECK-NEXT:         struct S_int s2 = {};
+// CHECK-NEXT:        _Bool s2_is_moved = 0;
+// CHECK-NEXT:        {
+// CHECK-NEXT:             struct S_int s3 = {};
+// CHECK-NEXT:            _Bool s3_is_moved = 0;
+// CHECK-NEXT:            if (!s3_is_moved)
+// CHECK-NEXT:                struct_S_int_D(s3);
+// CHECK-NEXT:            if (!s2_is_moved)
+// CHECK-NEXT:                struct_S_int_D(s2);
+// CHECK-NEXT:            if (!s1_is_moved)
+// CHECK-NEXT:                struct_S_int_D(s1);
+// CHECK-NEXT:            return s;
+// CHECK-NEXT:        }
+// CHECK-NEXT:        if (!s2_is_moved)
+// CHECK-NEXT:            struct_S_int_D(s2);
+// CHECK-NEXT:    }
+// CHECK-NEXT:    if (!s1_is_moved)
+// CHECK-NEXT:        struct_S_int_D(s1);
+// CHECK-NEXT:    return s;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S_int_D( struct S_int this) {
+// CHECK-NEXT:    _Bool this_is_moved = 0;
+// CHECK-NEXT:}

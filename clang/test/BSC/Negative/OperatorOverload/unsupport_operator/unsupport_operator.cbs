@@ -1,0 +1,120 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+struct A {
+    int a;
+};
+
+__attribute__((operator))       // expected-error {{unsupported operator type}}
+int operator0(struct A s) {     
+    return s.a;
+}
+
+__attribute__((operator ,))     // expected-error {{unsupported operator type}}
+int operator1(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator .))     // expected-error {{unsupported operator type}}
+int operator2(struct A s) {     // expected-error@-1 {{expected ')'}}
+    return s.a;
+}
+
+__attribute__((operator ()))    // expected-error {{unsupported operator type}}
+int operator3(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator ++))    // expected-error {{unsupported operator type}}
+int operator4(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator --))    // expected-error {{unsupported operator type}}
+int operator5(struct A s) { 
+    return s.a;
+}
+
+__attribute__((operator &mut))     // expected-error {{unsupported operator type}}
+int operator6(struct A s) {        // expected-error@-1 {{expected ')'}}
+    return s.a;
+}
+
+__attribute__((operator &&))    // expected-error {{unsupported operator type}}
+int operator7(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator ||))    // expected-error {{unsupported operator type}}
+int operator8(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator !))     // expected-error {{unsupported operator type}}
+int operator9(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator sizeof))    // expected-error {{unsupported operator type}}
+int operator10(struct A s) {        // expected-error@-1 {{expected ')'}}
+    return s.a;
+}
+
+__attribute__((operator typeof))    // expected-error {{unsupported operator type}}
+int operator11(struct A s) {        // expected-error@-1 {{expected ')'}}
+    return s.a;
+}
+
+__attribute__((operator =))         // expected-error {{unsupported operator type}}
+int operator12(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator +=))        // expected-error {{unsupported operator type}}
+int operator13(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator -=))        // expected-error {{unsupported operator type}}
+int operator14(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator *=))        // expected-error {{unsupported operator type}}
+int operator15(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator /=))        // expected-error {{unsupported operator type}}
+int operator16(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator %=))        // expected-error {{unsupported operator type}}
+int operator17(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator ^=))        // expected-error {{unsupported operator type}}
+int operator18(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator |=))        // expected-error {{unsupported operator type}}
+int operator19(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator &=))        // expected-error {{unsupported operator type}}
+int operator20(struct A s) {
+    return s.a;
+}
+
+__attribute__((operator &const))        // expected-error {{unsupported operator type}}
+int operator21(struct A s) {            // expected-error@-1 {{expected ')'}}
+    return s.a;
+}
+
+__attribute__((operator &))
+int operator21(struct A s) {            // expected-error {{overloaded 'operator21' must be a binary operator (has 1 parameter)}}
+    return s.a;
+}

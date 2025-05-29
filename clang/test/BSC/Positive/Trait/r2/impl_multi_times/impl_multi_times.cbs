@@ -1,0 +1,66 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -rewrite-bsc -line %s -o %t-rwline.c
+// RUN: FileCheck --input-file=%t-rwline.c %s --check-prefix=CHECK
+// RUN: FileCheck --input-file=%t-rwline.c %s --check-prefix=CHECK-L
+// expected-no-diagnostics
+#include <stdio.h>
+
+trait TR {
+  void f(This* this);
+};
+
+// CHECK-L: #line 18 "{{.*}}.cbs"
+void int::f(int* this) {
+  printf("int::f\n");
+}
+
+impl trait TR for int;
+
+impl trait TR for int; // OK, and useless.
+
+// CHECK-L: #line 27 "{{.*}}.cbs"
+int main() {
+  int x = 1;
+  trait TR* t = &x;
+  t->f();
+  return 0;
+}
+
+// CHECK:      #include <stdio.h>
+
+// CHECK:      struct __Trait_TR_Vtable {
+// CHECK-NEXT:   void (*f)(void *);
+// CHECK-NEXT: };
+
+// CHECK:      struct __Trait_TR {
+// CHECK-NEXT:   void *data;
+// CHECK-NEXT:   struct __Trait_TR_Vtable *vtable;
+// CHECK-NEXT: };
+
+// CHECK:      struct __Trait_TR_Owned {
+// CHECK-NEXT:     void * data;
+// CHECK-NEXT:     struct __Trait_TR_Vtable *vtable;
+// CHECK-NEXT: };
+
+// CHECK:      struct __Trait_TR_Borrow {
+// CHECK-NEXT:     void * data;
+// CHECK-NEXT:     struct __Trait_TR_Vtable *vtable;
+// CHECK-NEXT: };
+ 
+// CHECK:      void int_f(int *this) {
+// CHECK-NEXT:   printf("int::f\n");
+// CHECK-NEXT: }
+
+// CHECK:      struct __Trait_TR_Vtable __int_trait_TR = {.f = (void (*)(void *))int_f};
+
+// CHECK:      int main(void) {
+// CHECK-NEXT:   int x = 1;
+// CHECK-NEXT:   struct __Trait_TR t = {&x, &__int_trait_TR};
+// CHECK-NEXT:   t.vtable->f(t.data);
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }

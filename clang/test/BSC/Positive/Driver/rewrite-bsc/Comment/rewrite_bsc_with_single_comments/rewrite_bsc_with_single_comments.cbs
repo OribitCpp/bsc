@@ -1,0 +1,24 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -I %S -o %t-rw.output
+// RUN: %t-rw.output
+
+// #include <stdio.h>
+//    Line2
+      //Line3
+
+
+//end// #include <stdlib.h>
+
+#include <memory.h>    //           //  2asd 
+
+int main() {
+  return 0;
+}
+
+// CHECK:      #include <memory.h>
+// CHECK-EMPTY:
+// CHECK-EMPTY:
+// CHECK-NEXT: int main() {
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }

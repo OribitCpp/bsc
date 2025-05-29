@@ -1,0 +1,65 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+constexpr int foo(int a) {
+    return a;
+}
+constexpr int bar<T, int N>(int a) {
+    return a;
+}
+
+constexpr int int::foo_static(int a) {
+    return a;
+}
+
+struct S {};
+constexpr int struct S::foo_static(int a) {
+    return a;
+}
+
+struct G<T, int N> {};
+constexpr int struct G<T, int N>::foo_static(int a) {
+    return a;
+}
+
+void func(int a) {}
+
+int main() {
+    foo(5);
+    bar<int, 5>(5);
+    int::foo_static(5);
+    struct S::foo_static(5);
+    struct G<int, 5>::foo_static(5);
+    int a1 = foo(5);
+    int a2 = bar<int, 5>(5);
+    int a3 = int::foo_static(5);
+    int a4 = struct S::foo_static(5);
+    int a5 = struct G<int, 5>::foo_static(5);
+    func(foo(5));
+    func(bar<int, 5>(5));
+    func(int::foo_static(5));
+    func(struct S::foo_static(5));
+    func(struct G<int, 5>::foo_static(5));
+
+    int b = 5;
+    foo(b);
+    bar<int, 5>(b);
+    int::foo_static(b);
+    struct S::foo_static(b);
+    struct G<int, 5>::foo_static(b);
+    int a6 = foo(b);
+    int a7 = bar<int, 5>(b);
+    int a8 = int::foo_static(b);
+    int a9 = struct S::foo_static(b);
+    int a10 = struct G<int, 5>::foo_static(b);
+    func(foo(b));
+    func(bar<int, 5>(b));
+    func(int::foo_static(b));
+    func(struct S::foo_static(b));
+    func(struct G<int, 5>::foo_static(b));
+    return 0;
+}

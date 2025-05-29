@@ -1,0 +1,39 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+safe int add(int a, int b) {
+  return a + b;
+}
+
+safe double dadd(double a, double b) {
+  return a + b;
+}
+
+typedef safe int (*TP)(int a, int b);
+
+int main() {
+  safe int (*p)(int a, int b);
+  p = add;      //ok
+  TP tp = add;  // ok
+
+  safe int (*pa)(int a);
+  pa = add;                          // expected-error {{incompatible function pointer types assigning to 'safe int (*)(int)' from 'safe int (int, int)'}}
+
+  safe int (*pp)(double a, double b);
+  pp = add;                          // expected-error {{incompatible function pointer types assigning to 'safe int (*)(double, double)' from 'safe int (int, int)'}}
+  pp = dadd;                         // expected-error {{incompatible function pointer types assigning to 'safe int (*)(double, double)' from 'safe double (double, double)'}}
+
+  unsafe int (*up)(double a, double b);
+  up = add;           // expected-warning {{incompatible function pointer types assigning to 'int (*)(double, double)' from 'safe int (int, int)'}}
+  up = dadd;          // expected-warning {{incompatible function pointer types assigning to 'int (*)(double, double)' from 'safe double (double, double)'}}
+  safe {
+    p = &add;       // ok
+    TP tp = &add;   // ok
+    up = &add;      // expected-error {{incompatible function pointer types assigning to 'int (*)(double, double)' from 'safe int (*)(int, int)'}}
+    up = &dadd;     // expected-error {{incompatible function pointer types assigning to 'int (*)(double, double)' from 'safe double (*)(double, double)'}}
+    p = (TP)add;
+    p = (TP)dadd;   // expected-error {{conversion from type 'safe double (double, double)' to 'TP' (aka 'int (*)(int, int)') is forbidden}}
+  }
+  p = (TP)add;
+  p = (TP)dadd;       // expected-error {{conversion from type 'safe double (double, double)' to 'TP' (aka 'int (*)(int, int)') is forbidden}}
+  return 0;
+}

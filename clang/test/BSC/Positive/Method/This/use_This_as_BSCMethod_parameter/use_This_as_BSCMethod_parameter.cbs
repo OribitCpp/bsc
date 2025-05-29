@@ -1,0 +1,73 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include <stdio.h>
+typedef struct S {
+    int a;
+}S1;
+void S1::f(This* this, int b) {
+    this->a = this->a + b;
+}
+void struct S::dump(This* this) {
+    printf("%d\n", this->a);
+}
+void struct S::dump2(This this) {
+    printf("%d\n", this.a);
+}
+
+void int::f(This* this, int b) {
+    *this = *this + b;
+}
+void int::dump(This* this) {
+    printf("%d\n", *this);
+}
+void int::dump2(This this) {
+    printf("%d\n", this);
+}
+
+void int::bar(const This* const this) {
+}
+// CHECK: void int_bar(const int *const this) {
+// CHECK-NEXT:}
+
+struct G<T> {
+    T d;
+};
+void struct G<T>::f(This* this, int b) {
+    this->d = this->d + b;
+}
+void struct G<T>::dump(This* this) {
+    printf("%d\n", this->d);
+}
+void struct G<T>::dump2(This this) {
+    printf("%d\n", this.d);
+}
+void struct G<T>::bar(const This* const this) {
+}
+// CHECK: static void struct_G_int_bar(const struct G_int *const this) {
+// CHECK-NEXT:}
+
+int main() {
+    struct S s = {.a = 5};
+    s.f(4);
+    s.dump();   // print 9
+    s.dump2();  // print 9
+
+    int c = 10;
+    c.f(4);
+    c.dump();   // print 14
+    c.dump2();  // print 14
+
+    struct G<int> g = {.d = 15};
+    g.f(4);
+    g.dump();   // print 19
+    g.dump2();  // print 19
+    g.bar();
+
+    return 0;
+}

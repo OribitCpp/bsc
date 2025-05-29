@@ -1,0 +1,36 @@
+#ifndef READ_H
+#define READ_H
+
+#include "future.hbs"
+
+struct _Futureread {
+    int a;
+    int res;
+    int __future_state;
+};
+typedef struct _Futureread __Futureread;
+
+struct PollResult<int> struct _Futureread::poll(__Futureread *this)     {
+    struct PollResult<int> poll_result;
+    switch (this->__future_state) {
+      case 0:
+        goto L0;
+    }
+  L0:
+    this->res = this->a;
+    this->__future_state = -1;
+    return struct PollResult<int>::completed(this->res);
+}
+
+void struct _Futureread::free(struct _Futureread *this) {}
+
+impl trait Future<int> for struct _Futureread;
+
+trait Future<int>* read(int a) {
+  struct _Futureread* ptr;
+  ptr->a = a;
+  ptr->__future_state = 0;
+  return ptr;
+}
+
+#endif

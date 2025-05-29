@@ -1,0 +1,53 @@
+// RUN: %clang_cc1 -verify %s
+
+typedef struct R {
+  int a;
+  int b;
+} R;
+
+typedef struct S {
+  int *borrow p;
+  int *borrow q;
+} S;
+
+void use_mutI(int *borrow);
+void use_constI(const int *borrow);
+
+void test1() {
+  R r = { .a = 1, .b = 2 };
+  S s = { .p = &mut r.a, .q = &mut r.b };
+  use_mutI(s.p);
+  use_mutI(s.q);
+}
+
+void test2() {
+  R r = { .a = 1, .b = 2 };
+  S s = { .p = &mut r.a, .q = &mut r.b }; // expected-note {{first mut borrow occurs here}}
+  int *borrow pp = &mut r.a; // expected-error {{cannot borrow `r.a` as mutable more than once at a time}}
+  use_mutI(s.p);
+  use_mutI(pp);
+}
+
+void test3() {
+  R r = { .a = 1, .b = 2 };
+  S s = { .p = &mut r.a, .q = &mut r.b };
+  int *borrow p1 = s.p; // expected-note {{`*s.p` is borrowed here}}
+  int temp = *s.p; // expected-error {{cannot use `*s.p` because it was mutably borrowed}}
+  int *borrow p2 = p1;
+}
+
+void test4() {
+  R r = { .a = 1, .b = 2 };
+  S s = { .p = &mut r.a, .q = &mut r.b }; // expected-note {{`r.a` is borrowed here}}
+  r.a = 5; // expected-error {{cannot assign to `r.a` because it is borrowed}}
+  s.q = s.p;
+}
+
+void test5() {
+  R r = { .a = 1, .b = 2 };
+  S s = { .p = &mut r.a, .q = &mut r.b }; // expected-note {{`r.a` is borrowed here}}
+  r.a = 5; // expected-error {{cannot assign to `r.a` because it is borrowed}}
+  s.q = s.p;
+  r.a = 5;
+  int *borrow p = s.q;
+}

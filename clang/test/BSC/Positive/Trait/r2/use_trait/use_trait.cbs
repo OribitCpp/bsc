@@ -1,0 +1,112 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+#include <stdio.h>
+
+trait TR1{
+  void f1(This* this);
+  int g1(This* this, int x);
+};
+// CHECK: struct __Trait_TR1_Vtable {
+// CHECK-NEXT: void (*f1)(void *);
+// CHECK-NEXT: int (*g1)(void *, int);
+// CHECK-NEXT: };
+
+// CHECK: struct __Trait_TR1 {
+// CHECK-NEXT: void *data;
+// CHECK-NEXT: struct __Trait_TR1_Vtable *vtable;
+// CHECK-NEXT: };
+
+
+trait TR2{
+  void f2(This* this);
+  int g2(This* this, int x);
+};
+// CHECK: struct __Trait_TR2_Vtable {
+// CHECK-NEXT: void (*f2)(void *);
+// CHECK-NEXT: int (*g2)(void *, int);
+// CHECK-NEXT: };
+
+// CHECK: struct __Trait_TR2 {
+// CHECK-NEXT: void *data;
+// CHECK-NEXT: struct __Trait_TR2_Vtable *vtable;
+// CHECK-NEXT: };
+
+
+void int::f1(int* this) {
+  printf("int::f1\n");
+}
+
+int int::g1(int* this, int x) {
+  return *this + x;
+}
+
+void int::f2(int* this) {
+  printf("int::f2\n");
+}
+
+int int::g2(int* this, int x) {
+  return *this + x;
+}
+
+impl trait TR1 for int;
+// CHECK: struct __Trait_TR1_Vtable __int_trait_TR1 = {.f1 = (void (*)(void *))int_f1, .g1 = (int (*)(void *, int))int_g1};
+impl trait TR2 for int;
+// CHECK: struct __Trait_TR2_Vtable __int_trait_TR2 = {.f2 = (void (*)(void *))int_f2, .g2 = (int (*)(void *, int))int_g2};
+
+void baz(trait TR1* tr) {
+  tr->f1();
+};
+// CHECK: void baz(struct __Trait_TR1 tr) {
+// CHECK-NEXT: tr.vtable->f1(tr.data);
+// CHECK-NEXT: }
+
+// Its ok to write a ImplTrait again.
+impl trait TR2 for int;
+
+
+
+int main() {
+  // implicit cast to trait
+  int x = 41;
+  trait TR1* tr1 = &x;
+  tr1->f1();
+  int a1 = tr1->g1(1);
+  if (a1 != 42) return 1;
+  trait TR2* tr2 = &x;
+  tr2->f2();
+  int a2 = tr2->g2(1);
+  if (a2 != 42) return 2;
+
+  // explicit cast to trait
+  int y = 41;
+  trait TR1* tt1 = (trait TR1*)&y;
+  tt1->f1();
+  ((trait TR1*)&y)->f1();
+
+  // pass as a param
+  baz(&y);
+  //baz((trait TR1*)&y); // TODO: need to be supported.
+
+  return 0;
+}
+// CHECK: int x = 41;
+// CHECK-NEXT: struct __Trait_TR1 tr1 = {&x, &__int_trait_TR1};
+// CHECK-NEXT: tr1.vtable->f1(tr1.data);
+// CHECK-NEXT: int a1 = tr1.vtable->g1(tr1.data, 1);
+// CHECK-NEXT: if (a1 != 42)
+// CHECK-NEXT: return 1;
+// CHECK-NEXT: struct __Trait_TR2 tr2 = {&x, &__int_trait_TR2};
+// CHECK-NEXT: tr2.vtable->f2(tr2.data);
+// CHECK-NEXT: int a2 = tr2.vtable->g2(tr2.data, 1);
+// CHECK-NEXT: if (a2 != 42)
+// CHECK-NEXT: return 2;
+// CHECK-NEXT: int y = 41;
+// CHECK-NEXT: struct __Trait_TR1 tt1 = {&y, &__int_trait_TR1};
+// CHECK-NEXT: tt1.vtable->f1(tt1.data);
+// CHECK-NEXT: (struct __Trait_TR1){&y, &__int_trait_TR1}.vtable->f1((struct __Trait_TR1){&y, &__int_trait_TR1}.data);
+// CHECK-NEXT: baz((struct __Trait_TR1){.data = &y, .vtable = &__int_trait_TR1});

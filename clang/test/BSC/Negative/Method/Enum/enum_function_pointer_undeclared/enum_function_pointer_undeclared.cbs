@@ -1,0 +1,17 @@
+// RUN: %clang_cc1 -verify %s
+
+enum E {
+    X3,
+    X4
+};
+
+int getA() { // expected-note {{'getA' declared here}}
+             // expected-note@-1 {{'getA' declared here}}
+  return 1;
+}
+
+int main() {
+  int (*fp)() = enum E::getA; // expected-error {{no member named 'getA' in 'enum E'; did you mean simply 'getA'?}}
+  int (*fp1)() = &enum E::getA; // expected-error {{no member named 'getA' in 'enum E'; did you mean simply 'getA'?}}
+  return 0;
+}

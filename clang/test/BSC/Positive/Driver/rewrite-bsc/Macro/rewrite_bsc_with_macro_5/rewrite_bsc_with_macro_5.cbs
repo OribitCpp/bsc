@@ -1,0 +1,85 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -S -emit-llvm -o - %s | FileCheck %s --check-prefix=CHECK_MANGLE
+
+#ifndef NEW_CDF_DATAFRAME_TYPE_HBS
+#define NEW_CDF_DATAFRAME_TYPE_HBS
+
+int a = 1;
+
+#define MINUS -
+#define ONE 1
+#define HALF 0.5
+#define NEGIVE -100
+#define SQUARE(x) ((x) * (x))
+
+// CHECK_MANGLE: define {{.*}} @ase_mmem_close_BBB
+#define ASE_POOL_DEF(var_, name_) \
+  void ase_mmem_close_##name_() \
+  { \
+     int a = 2; \
+  } \
+
+
+ASE_POOL_DEF(AAA, BBB);
+
+int int::foo(int* this) {
+  int b = ONE;
+  int result = ONE * SQUARE(2.5);
+  ase_mmem_close_BBB();
+  return 0;
+}
+
+int b = SQUARE(HALF);
+int c = ONE NEGIVE;
+int d = ONE MINUS ONE;
+
+
+int main() {
+  a = ONE;
+  int b = SQUARE(b.foo());
+  int e = (ONE * SQUARE(2.5) + b.foo()) * 2;
+  return 0;
+}
+
+#endif //NEW_CDF_DATAFRAME_TYPE_HBS
+
+
+// CHECK-DAG:  #define MINUS -
+// CHECK-DAG:  #define ONE 1
+// CHECK-DAG:  #define HALF 0.5
+// CHECK-DAG:  #define NEGIVE -100
+// CHECK-DAG:  #define SQUARE(x) ((x) * (x))
+// CHECK-DAG:  #define ASE_POOL_DEF(var_, name_) \
+// CHECK-DAG:    void ase_mmem_close_##name_() \
+// CHECK-DAG:    { \
+// CHECK-DAG:       int a = 2; \
+// CHECK-DAG:    }
+
+// CHECK:      int a = 1;
+// CHECK-EMPTY:
+// CHECK-NEXT: void ase_mmem_close_BBB(void) {
+// CHECK-NEXT:   int a = 2;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int int_foo(int *this) {
+// CHECK-NEXT:   int b = 1;
+// CHECK-NEXT:   int result = 1 * ((2.5) * (2.5));
+// CHECK-NEXT:   ase_mmem_close_BBB();
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int b = ((0.5) * (0.5));
+// CHECK-EMPTY:
+// CHECK-NEXT: int c = 1 - 100;
+// CHECK-EMPTY:
+// CHECK-NEXT: int d = 1 - 1;
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:   a = 1;
+// CHECK-NEXT:   int b = ((int_foo(&b)) * (int_foo(&b)));
+// CHECK-NEXT:   int e = (1 * ((2.5) * (2.5)) + int_foo(&b)) * 2;
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }

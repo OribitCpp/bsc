@@ -1,0 +1,9 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F<T> {// expected-note {{previous definition is here}}
+  T foo(This* this); 
+};
+
+trait F<T> { // expected-error {{redefinition of 'F'}}
+  T foo(This* this); 
+};

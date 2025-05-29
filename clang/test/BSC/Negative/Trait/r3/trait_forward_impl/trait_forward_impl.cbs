@@ -1,0 +1,36 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait T{
+    float f(volatile This *this, int a);
+    float print(This *this);
+};
+
+impl trait T for float; // expected-error {{function 'f' in 'trait T' is not implemented for 'float'}}
+
+float float::f(float *this, int a) {
+    return *this;
+}
+
+float float::print(float *this) {
+    return *this;
+}
+
+impl trait T for float; // expected-warning {{incompatible function pointer types initializing 'float (*)(volatile void *, int)' with an expression of type 'float (*)(void *, int)'}}
+
+volatile trait T* get(trait T* t){
+    float a = 6.0;
+    float* x = &a;
+    *x = 3.0;
+    return x;
+};
+
+int main()
+{
+    float a = 1;
+    float b = 2;
+    ((trait T*)&a)->f(b);
+    trait T* p = get(&b);
+    p->print();
+    return 0;
+}
+

@@ -1,0 +1,26 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+struct MyStruct<T> {
+  T res;
+};
+
+struct MyStruct<int> foo(struct MyStruct<int> *a) {
+  return *a;
+}
+
+int struct MyStruct<T>::foo(struct MyStruct<T> *this, int a) {
+  return a;
+}
+
+int main() {
+  struct MyStruct<int> p;
+  p.res = 22;
+  int res1 = p.foo(10);
+  int res2 = struct MyStruct<int>::foo(&p, 12);
+  return res1 + res2 - p.res;
+}

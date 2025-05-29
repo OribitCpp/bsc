@@ -1,0 +1,13 @@
+// RUN: %clang -Eno-use-uninit-owned -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// expected-no-diagnostics
+
+int * owned test() {
+	int * owned a;
+	return a;        // use of uninitialized value: `a`
+}
+
+// CHECK:      int * test(void) {
+// CHECK-NEXT:     int * a;
+// CHECK-NEXT:     return a;
+// CHECK-NEXT: }

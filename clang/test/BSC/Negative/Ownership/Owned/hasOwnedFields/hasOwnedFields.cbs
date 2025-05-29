@@ -1,0 +1,22 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+// expected-no-diagnostics
+
+// check if hasOwnedFields() can properly deal with the following cases:
+// 1. A struct contains itself
+// 2. Two struct contains each other
+typedef struct node {
+	struct node * next;
+} Node;
+
+Node node1;
+
+struct A {
+  struct B* b;
+};
+
+struct B {
+  struct A* a;
+};
+
+struct A a;
+

@@ -1,0 +1,20 @@
+// RUN: %clang_cc1 -verify %s
+// expected-no-diagnostics
+
+typedef union SimpleUnion {
+  float uf;
+  int ui;
+  char uc;
+}SimpleUnion;
+
+int SimpleUnion::getui_1(SimpleUnion* this) {
+  return this->ui;
+}
+
+int SimpleUnion::getui_2(union SimpleUnion* this) {
+  return this->ui;
+}
+
+int union SimpleUnion::getui_3(union SimpleUnion* this) {
+  return this->ui;
+}

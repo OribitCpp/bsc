@@ -1,0 +1,8 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang -c %t-rw.c -I %S -o %t-rw.output
+
+#  include   <stdio.h>
+
+
+// CHECK: #include <stdio.h>

@@ -1,0 +1,81 @@
+// RUN: %clang_cc1 -verify %s
+
+struct S {
+  int *borrow p;
+};
+
+struct G {
+  struct S s;
+};
+
+int rand();
+T *owned safe_malloc<T>(T value);
+void free_owned<T>(T *owned p);
+void free(void *);
+
+int *borrow test1(int *borrow p) {
+  int local = 42;
+  while (rand())
+    return &mut local; // expected-error {{`local` does not live long enough}}
+                       // expected-note@-1 {{`local` dropped here while still borrowed}}
+  return &mut local; // expected-error {{`local` does not live long enough}}
+                     // expected-note@-1 {{`local` dropped here while still borrowed}}
+}
+
+int *borrow test2(int *borrow p) {
+  int local = 42;
+  while (0)
+    return &mut local; // expected-error {{`local` does not live long enough}}
+                       // expected-note@-1 {{`local` dropped here while still borrowed}}
+  return &mut local; // expected-error {{`local` does not live long enough}}
+                     // expected-note@-1 {{`local` dropped here while still borrowed}}
+}
+
+int *borrow test3(int *borrow p) {
+  int local = 42;
+  while (rand())
+    p = &mut local; // expected-error {{`local` does not live long enough}}
+  return p; // expected-note {{`local` dropped here while still borrowed}}
+}
+
+int *borrow test4(int *borrow p) {
+  while (rand()) {
+    for (int i = 0; i < 5; i++) {
+      if (rand()) {
+        int local1 = 5;
+        p = &mut local1; // expected-error {{`local1` does not live long enough}}
+      } else { // expected-note {{`local1` dropped here while still borrowed}}
+        int local2 = 5;
+        p = &mut local2; // expected-error {{`local2` does not live long enough}}
+      } // expected-note {{`local2` dropped here while still borrowed}}
+    }
+  }
+  return p;
+}
+
+struct S test5(struct S s) {
+  int local = 5;
+  while (rand())
+    s.p = &mut local; // expected-error {{`local` does not live long enough}}
+                      // expected-error@-1 {{cannot borrow `local` as mutable more than once at a time}}
+                      // expected-note@-2 {{first mut borrow occurs here}}
+  return s; // expected-note {{`local` dropped here while still borrowed}}
+}
+
+struct S test6(struct G g) {
+  int local = 5;
+  while (rand())
+    g.s.p = &mut local; // expected-error {{`local` does not live long enough}}
+                        // expected-error@-1 {{cannot borrow `local` as mutable more than once at a time}}
+                        // expected-note@-2 {{first mut borrow occurs here}}
+  return g.s; // expected-note {{`local` dropped here while still borrowed}}
+}
+
+struct G test7(struct G g) {
+  int local = 5;
+  while (rand())
+    g.s.p = &mut local; // expected-error {{`local` does not live long enough}}
+                        // expected-error@-1 {{cannot borrow `local` as mutable more than once at a time}}
+                        // expected-note@-2 {{first mut borrow occurs here}}
+  return g; // expected-note {{`local` dropped here while still borrowed}}
+}

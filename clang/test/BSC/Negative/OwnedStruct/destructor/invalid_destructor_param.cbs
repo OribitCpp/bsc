@@ -1,0 +1,14 @@
+// RUN: %clang_cc1 -verify %s
+
+owned struct A {    
+ ~A(int x) { // expected-error {{the parameter of destructor must be 'A this'}}
+  }
+
+};
+
+
+owned struct B<T> {    
+ ~B(B<T> x) { // expected-error {{the parameter of destructor must be 'B<T> this'}}
+  }
+
+};

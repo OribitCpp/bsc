@@ -1,0 +1,31 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include <stdio.h>
+
+struct Block {  // MineCraft Block
+  char* color;
+  int blood;
+};
+
+struct Block bar<T1, T2>(T1 a, T2 b) {
+  struct Block grass = {"green", 1};
+  struct Block obsidian = {.color="black", .blood=100};
+  struct Block oak;
+  oak.color = "yellow";
+  oak.blood = 15;
+  return grass;
+}
+
+
+int main() {
+  struct Block br1 = bar<int, int>(1, 2);
+  struct Block br2 = bar<double, float>(1.0, 2.0);
+  printf("%s %d\n", br1.color, br1.blood);
+  printf("%s %d\n", br2.color, br2.blood);
+  return 0;
+}

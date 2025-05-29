@@ -1,0 +1,64 @@
+// RUN: %clang_cc1 -verify %s
+typedef NullableBorrowInt = int *borrow _Nullable;
+typedef NonnullBorrowInt = int *borrow _Nonnull;
+typedef NullableOwnedInt = int *owned _Nullable;
+typedef NonnullOwnedInt = int *owned _Nonnull;
+
+safe void foo1(NonnullBorrowInt a);
+safe void test1(void) {
+    int a = 10;
+    NonnullBorrowInt p1 = &mut a;
+    foo1(p1);
+    NullableBorrowInt p2 = &mut a;
+    foo1(p2);
+    NullableBorrowInt p3 = nullptr;
+    foo1(p3);  // expected-error {{cannot pass nullable pointer argument}}
+    foo1(&mut a);
+    foo1(nullptr); // expected-error {{cannot pass nullable pointer argument}} expected-warning {{null passed to a callee that requires a non-null argument}}
+}
+
+safe NonnullOwnedInt safe_malloc(int a);
+safe void foo2(NonnullOwnedInt a);  
+safe void test2(void) {
+    NonnullOwnedInt p1 = safe_malloc(5);
+    foo2(p1);
+    NullableOwnedInt p2 = safe_malloc(5); 
+    foo2(p2);
+    NullableOwnedInt p3 = nullptr; 
+    foo2(p3);   // expected-error {{cannot pass nullable pointer argument}}
+    foo2(safe_malloc(5));
+    foo2(nullptr); // expected-error {{cannot pass nullable pointer argument}} expected-warning {{null passed to a callee that requires a non-null argument}}
+}
+
+safe void foo3(NullableBorrowInt a);   
+safe void test3(void) {
+    int a = 10;
+    NonnullBorrowInt p1 = &mut a;
+    foo3(p1);
+    NullableBorrowInt p2 = &mut a;
+    foo3(p2);
+    NullableBorrowInt p3 = nullptr; 
+    foo3(p3);
+    foo3(nullptr);
+}
+
+safe void foo4(NullableOwnedInt a);  
+safe void test4(void) {
+    NonnullOwnedInt p1 = safe_malloc(5);
+    foo4(p1);
+    NullableOwnedInt p2 = safe_malloc(5);
+    foo4(p2);
+    NullableOwnedInt p3 = nullptr; 
+    foo4(p3);
+    foo4(nullptr);
+}
+
+safe void test5(void) {
+    NullableBorrowInt p = nullptr;
+    if (p != nullptr) {
+        *p = 10;
+    } else {
+        *p = 20; // expected-error {{nullable pointer cannot be dereferenced}}
+    }
+    *p = 30;  // expected-error {{nullable pointer cannot be dereferenced}}
+}

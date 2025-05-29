@@ -1,0 +1,35 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+int g_flag1 = 0x10;
+int g_flag2 = 0x10;
+int g_temp = 1;
+
+owned struct S1 {
+public:
+	~S1(S1 this) {
+	}
+};
+
+owned struct S2 {
+public:
+	S1 s1;
+	~S2(S2 this) {
+	}
+};
+
+S1 initS1();
+S2 initS2(S1);
+
+int main() {
+	int i = 0x10;
+	while (i--) {
+		S1 s1 = {};
+		S2 s2 = {s1};
+	}
+	g_temp = g_flag2;
+	return 0;
+}

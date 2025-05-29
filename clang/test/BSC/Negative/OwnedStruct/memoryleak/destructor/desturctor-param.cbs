@@ -1,0 +1,12 @@
+// RUN: %clang_cc1 -verify %s
+owned struct A {
+    public:
+    int * owned a;
+    ~A(A this) {
+    } // expected-error {{field memory leak of value: `this`, this.a is leak}}
+};
+int main() {
+    int local = 1;
+    A a ={ .a = (int * owned)&local };
+    return 0;
+}

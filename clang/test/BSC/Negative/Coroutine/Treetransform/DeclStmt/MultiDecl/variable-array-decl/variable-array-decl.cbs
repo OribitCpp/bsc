@@ -1,0 +1,16 @@
+// RUN: %clang_cc1 -internal-isystem %S/../../../../../../../../lib/Headers/bsc_include -verify %s
+
+#include "../../../../async-func-read-opposite.hbs"
+
+async int f() {
+  int n = 3;
+  int *a[n]; // #1
+  int x = await read(2);
+  return 42;
+}
+
+// expected-error@#1 {{async function does not support VariableArrayType}}
+
+int main() {
+  return 0;
+}

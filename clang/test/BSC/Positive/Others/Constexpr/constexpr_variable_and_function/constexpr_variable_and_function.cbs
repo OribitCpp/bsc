@@ -1,0 +1,122 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+constexpr int foo1() {
+    return 5;
+}
+
+constexpr int foo2<T, int N>() {
+    return 5;
+}
+
+int bar1<int N, T>() {
+    return 5;
+}
+
+int bar2<T, int N>() {
+    return 5;
+}
+
+constexpr int int::foo_static() {
+    return 5;
+}
+
+struct S {
+    int a;
+};
+constexpr int struct S::foo_static() {
+    return 5;
+}
+
+struct G<T> {
+    T a;
+};
+constexpr int struct G<T>::foo_static() {
+    return 5;
+}
+
+struct K<T, int N> {
+    T arr[N];
+};
+constexpr int struct K<T, int N>::foo_static() {
+    return 5;
+}
+
+struct M<int N, T> {
+    T arr[N];
+};
+int main() {
+    constexpr int a = 5;
+
+    bar1<a, struct G<int> >();
+    bar1<foo1(), struct G<int> >();
+    bar1<foo2<int, 5>(), struct G<int> >();
+    bar1<int::foo_static(), struct G<int> >();
+    bar1<struct S::foo_static(), struct G<int> >();
+    bar1<struct G<int>::foo_static(), struct G<int> >();
+    bar1<struct K<int, 5>::foo_static(), struct G<int> >();
+
+    bar2<struct G<int>, a>();
+    bar2<struct G<int>, foo1()>();
+    bar2<struct G<int>, foo2<int, 5>()>();
+    bar2<struct G<int>, int::foo_static()>();
+    bar2<struct G<int>, struct S::foo_static()>();
+    bar2<struct G<int>, struct G<int>::foo_static()>();
+    bar2<struct G<int>, struct K<int, 5>::foo_static()>();
+
+    int bar3 = bar1<int::foo_static(), struct G<int> >();
+    int bar4 = bar1<struct S::foo_static(), struct G<int> >();
+    int bar5 = bar1<struct G<int>::foo_static(), struct G<int> >();
+    int bar6 = bar1<struct K<int, 5>::foo_static(), struct G<int> >();
+    int bar7 = bar2<struct G<int>, int::foo_static()>();
+    int bar8 = bar2<struct G<int>, struct S::foo_static()>();
+    int bar9 = bar2<struct G<int>, struct G<int>::foo_static()>();
+    int bar10 = bar2<struct G<int>, struct K<int, 5>::foo_static()>();
+
+    struct K<int, int::foo_static()> k1;
+    struct K<int, struct S::foo_static()> k2;
+    struct K<struct S, struct G<int>::foo_static()> k3;
+    struct K<struct G<int>, struct G<int>::foo_static()> k4;
+
+    struct M<int::foo_static(), int> m1;
+    struct M<struct S::foo_static(), int> m2;
+    struct M<struct G<int>::foo_static(), struct S> m3;
+    struct M<struct G<int>::foo_static(), struct G<int> > m4;
+
+    int arr1[a] = {0};
+    int arr2[foo1()] = {0};
+    int arr3[foo2<int, 5>()] = {0};
+    int arr4[int::foo_static()] = {0};
+    int arr5[struct S::foo_static()] = {0};
+    int arr6[struct G<int>::foo_static()] = {0};
+    int arr7[struct K<int, 5>::foo_static()] = {0};
+    int arr8[struct K<int, 5>::foo_static()][struct G<int>::foo_static()] = {0};
+
+    constexpr int b = a;
+    constexpr int c = foo1();
+    constexpr int d = foo2<int, 5>();
+    constexpr int e = int::foo_static();
+    constexpr int f = struct S::foo_static();
+    constexpr int g = struct G<int>::foo_static();
+    constexpr int h = struct K<int, 5>::foo_static();
+
+    _Static_assert(a == 5, "fail");
+    _Static_assert(foo1() == 5, "fail");
+    _Static_assert(foo2<int, 5>() == 5, "fail");
+    _Static_assert(int::foo_static() == 5, "fail");
+    _Static_assert(struct S::foo_static() == 5, "fail");
+    _Static_assert(struct G<int>::foo_static() == 5, "fail");
+    _Static_assert(struct K<int, 5>::foo_static() == 5, "fail");
+    _Static_assert(b == 5, "fail");
+    _Static_assert(c == 5, "fail");
+    _Static_assert(d == 5, "fail");
+    _Static_assert(e == 5, "fail");
+    _Static_assert(f == 5, "fail");
+    _Static_assert(g == 5, "fail");
+    _Static_assert(h == 5, "fail");
+    return 0;
+}

@@ -1,0 +1,46 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+T f<T>(T value) { return value; }
+
+int case0() {
+    f(0);
+    return 0;
+}
+
+int case1() {
+    f(0) + 0;
+    return 0;
+}
+
+int case2() {
+    f<int>(0);
+    return 0;
+}
+
+int main() { return 0; }
+
+// CHECK: static int f_int(int value);
+// CHECK-EMPTY:
+// CHECK-NEXT: int case0(void) {
+// CHECK-NEXT:     f_int(0);
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int case1(void) {
+// CHECK-NEXT:     f_int(0) + 0;
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int case2(void) {
+// CHECK-NEXT:     f_int(0);
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int main() { return 0; }
+// CHECK-EMPTY:
+// CHECK-NEXT: static int f_int(int value) {
+// CHECK-NEXT:     return value;
+// CHECK-NEXT: }

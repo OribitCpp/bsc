@@ -1,0 +1,30 @@
+// RUN: %clang %s -o %test.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../lib/Headers/bsc_include/future.hbs -o %T/future.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// expected-no-diagnostics
+
+#include "future.hbs"
+#include <stdlib.h>
+
+async volatile char g(char x) {
+    char a = await g(1);
+    switch (1) {
+        case 1:
+            return await g(2);
+            break;
+        case 2:
+            return await g(3);
+            break;
+        default:
+            return await g(4);
+    }
+    return 0;
+}
+
+int main()
+{
+    trait Future<volatile char>* this = g(1);
+    this->poll();
+    return 0;
+}

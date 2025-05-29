@@ -1,0 +1,48 @@
+// RUN: %clang_cc1 -verify %s
+
+#define NULL (void*)(0)
+
+int test1(){
+	int a = 1;
+	int *b = &a;
+    if (b == NULL) {
+        int x0 = 0;
+        int * owned p0 = (int * owned)&x0;      
+        goto FAIL;                           //expected-error {{memory leak of value: `p0`}}
+    }
+	return 0;
+FAIL:
+    return 1;
+}
+
+int test2(){
+	int a = 1;
+	int *b = &a;
+    if (b == NULL) {
+        goto FAIL;                          
+    }
+    int x0 = 0;
+    int * owned p0 = (int * owned)&x0;
+	return 0;                                 //expected-error {{memory leak of value: `p0`}}
+FAIL:
+    return 1;
+}
+
+int test3(){
+	int a = 1;
+	int *b = &a;
+    if (b == NULL) { 
+        goto FAIL;
+    }
+	return 0;
+FAIL:
+    int x2 = 0;
+    int * owned p2 = (int * owned)&x2;     
+    return 1;                                //expected-error {{memory leak of value: `p2`}}
+}
+
+int main(){
+    test1();
+    test2();
+    test3();
+}

@@ -1,0 +1,96 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -rewrite-bsc -line %s -o %t-rwline.c
+// RUN: FileCheck --input-file=%t-rwline.c %s --check-prefix=CHECK-L
+// expected-no-diagnostics
+
+#include <stdlib.h>
+
+int *borrow *owned safe_malloc1(int *borrow bp) {
+  int *borrow * p = (int *borrow *) malloc( sizeof(int *borrow) );
+  *p = bp;
+  return (int *borrow *owned)p;
+}
+
+void safe_free1(int *borrow *owned p) {
+  free( (int *borrow *)p );
+}
+
+void test1() {
+  int a = 0;
+  int *borrow p = &mut a;
+  int* borrow *owned ap = safe_malloc1(p);
+  safe_free1(ap);
+}
+
+struct M {
+    int* borrow ma;
+};
+
+struct M *owned safe_malloc2(struct M m) {
+  struct M * p = (struct M *) malloc( sizeof(struct M) );
+  *p = m;
+  return (struct M *owned)p;
+}
+
+void safe_free2(struct M *owned p) {
+  free( (struct M *)p );
+}
+
+void test2() {
+  int a = 0;
+  struct M m = { &mut a };
+  struct M *owned mp = safe_malloc2(m);
+  struct M *owned *mpp = &mp;
+  safe_free2(mp);
+}
+
+// CHECK-L: #line 12 "{{.*}}.cbs"
+// CHECK-L-NEXT: int * * safe_malloc1(int * bp) {
+// CHECK-L-NEXT:   int * *p = (int * *)malloc(sizeof(int *));
+// CHECK-L-NEXT:   *p = bp;
+// CHECK-L-NEXT:   return (int * *)p;
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 18 "{{.*}}.cbs"
+// CHECK-L-NEXT: void safe_free1(int * * p) {
+// CHECK-L-NEXT:   free((int * *)p);
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 22 "{{.*}}.cbs"
+// CHECK-L-NEXT: void test1(void) {
+// CHECK-L-NEXT:   int a = 0;
+// CHECK-L-NEXT:   int * p = &a;
+// CHECK-L-NEXT:   int * * ap = safe_malloc1(p);
+// CHECK-L-NEXT:   safe_free1(ap);
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 33 "{{.*}}.cbs"
+// CHECK-L-NEXT: struct M * safe_malloc2(struct M m) {
+// CHECK-L-NEXT:   struct M *p = (struct M *)malloc(sizeof(struct M));
+// CHECK-L-NEXT:   *p = m;
+// CHECK-L-NEXT:   return (struct M *)p;
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 39 "{{.*}}.cbs"
+// CHECK-L-NEXT: void safe_free2(struct M * p) {
+// CHECK-L-NEXT:   free((struct M *)p);
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 43 "{{.*}}.cbs"
+// CHECK-L-NEXT: void test2(void) {
+// CHECK-L-NEXT:   int a = 0;
+// CHECK-L-NEXT:   struct M m = {&a};
+// CHECK-L-NEXT:   struct M * mp = safe_malloc2(m);
+// CHECK-L-NEXT:   struct M * *mpp = &mp;
+// CHECK-L-NEXT:   safe_free2(mp);
+// CHECK-L-NEXT: }
+
+int main() {
+  test1();
+  test2();
+  return 0;
+}

@@ -1,0 +1,131 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include <stdlib.h>
+safe T *owned safe_malloc<T>(T t) {
+    unsafe {
+        T *addr = (T *)malloc(sizeof(T));
+        if (!addr) {
+            addr = &t;
+            T* forget = &t;
+            *forget = t;
+            exit(EXIT_FAILURE);
+        } else {
+            *addr = t;
+        }
+        return (T *owned)addr;
+	}
+}
+
+safe void safe_free(void *owned p) {
+    unsafe {
+        free((void *)p);
+    }
+}
+
+safe void test1(void) {
+    int *owned _Nullable p = nullptr;
+    int cond = 1;
+    if (cond) {
+        p = safe_malloc<int>(10);
+        *p = 10;
+    }
+    if (p != nullptr) {
+        *p = 10;
+        safe_free((void *owned)p);
+    }
+}
+
+safe void test2(void) {
+    int *owned _Nullable p = nullptr;
+    p = nullptr;
+}
+
+struct S {
+    int *owned _Nullable p;
+};
+safe void test3(void) {
+    struct S s = { nullptr };
+    int cond = 1;
+    if (cond) {
+        s.p = safe_malloc<int>(10);
+    }
+    if (s.p != nullptr) {
+        *s.p = 10;
+        safe_free((void *owned)s.p);
+    }
+}
+
+safe void test4(void) {
+    struct S s = { nullptr };
+    struct S *owned _Nullable p = safe_malloc<struct S>(s);
+    if (p->p != nullptr)
+        safe_free((void *owned)p->p);
+    safe_free((void *owned)p);
+}
+
+safe void test5(void) {
+    struct S s = { nullptr };
+    struct S *owned _Nullable p = nullptr;
+    int cond = 1;
+    if (cond) {
+        p = safe_malloc<struct S>(s);
+    }
+    if (p != nullptr) {
+        if (p->p != nullptr) {
+            *p->p = 10;
+            safe_free((void *owned)p->p);
+        }
+    }
+}
+
+long * owned return_nonnull() {
+    long * owned p = safe_malloc<long>(10);
+    return p;
+}
+
+safe int test6(void) {
+    unsafe {
+        const long * owned a = return_nonnull();
+        if (a != 0) {
+            free((void *)(void * owned)a);
+            return 1;
+        }
+        return 0;
+    }
+}
+
+owned struct K {
+public:
+    int *owned _Nullable p;
+    ~K(This this) {
+        if (this.p != nullptr) {
+            safe_free((void *owned)this.p);
+        }
+    }
+};
+safe void test7(void) {
+    K k = { nullptr };
+    int cond = 1;
+    if (cond) {
+        k.p = safe_malloc<int>(10);
+    }
+    if (k.p != nullptr) {
+        *k.p = 10;
+    }
+}
+
+int main() {
+    test1();
+    test2();
+    test3();
+    test4();
+    test5();
+    test6();
+    test7();
+    return 0;
+}

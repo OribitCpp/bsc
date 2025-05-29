@@ -1,0 +1,117 @@
+// RUN: %clang_cc1 -verify %s
+
+typedef struct A {
+  int *borrow p;
+  int *borrow q;
+  int c;
+} A;
+
+typedef struct B {
+  A a;
+  int d;
+} B;
+
+struct V {
+  int a;
+};
+
+struct M {
+  int *borrow ma;
+  const int *borrow na;
+};
+
+void useSA(A);
+void useSB(B);
+void use_mut(int *borrow p);
+void use_immut(const int *borrow p);
+int get_by_mut(int *borrow p);
+
+void test1(A a) {
+  A b = a; // expected-note {{`*a.p` is borrowed here}}
+           // expected-note@-1 {{first mut borrow occurs here}}
+           // expected-note@-2 {{first mut borrow occurs here}}
+  useSA(a); // expected-error {{cannot use `a` because it was mutably borrowed}}
+            // expected-error@-1 {{cannot borrow `*a.p` as mutable more than once at a time}}
+            // expected-error@-2 {{cannot borrow `*a.q` as mutable more than once at a time}}
+  useSA(b);
+}
+
+void test2(B b) {
+  A m = b.a; // expected-note {{`*b.a.p` is borrowed here}}
+             // expected-note@-1 {{first mut borrow occurs here}}
+             // expected-note@-2 {{first mut borrow occurs here}}
+  useSB(b); // expected-error {{cannot use `b` because it was mutably borrowed}}
+            // expected-error@-1 {{cannot borrow `*b.a.p` as mutable more than once at a time}}
+            // expected-error@-2 {{cannot borrow `*b.a.q` as mutable more than once at a time}}
+  useSA(m);
+}
+
+void test3(B b) {
+  A m = b.a; // expected-note {{`*b.a.p` is borrowed here}}
+             // expected-note@-1 {{first mut borrow occurs here}}
+             // expected-note@-2 {{first mut borrow occurs here}}
+  useSA(b.a); // expected-error {{cannot use `b.a` because it was mutably borrowed}}
+              // expected-error@-1 {{cannot borrow `*b.a.p` as mutable more than once at a time}}
+              // expected-error@-2 {{cannot borrow `*b.a.q` as mutable more than once at a time}}
+  useSA(m);
+}
+
+void test4() {
+  struct V v = { .a = 5 };
+  struct V *borrow p = &mut v;
+  int *borrow q1 = &mut p->a; // expected-note {{mutable borrow occurs here}}
+  const int *borrow q2 = &const p->a; // expected-error {{cannot borrow `(*p).a` as immutable because it is also borrowed as mutable}}
+  struct M m = { .ma = q1, .na = q2 };
+  use_mut(m.ma);
+  use_immut(m.na);
+
+  struct V v1 = { .a = 5 };
+  p = &mut v1;
+  m.ma = &mut p->a; // expected-note {{mutable borrow occurs here}}
+  m.na = &const p->a; // expected-error {{cannot borrow `(*p).a` as immutable because it is also borrowed as mutable}}
+  use_mut(m.ma);
+  use_immut(m.na);
+}
+
+void test5() {
+  struct V v = { .a = 5 };
+  struct V *borrow p = &mut v;
+  int *borrow q1 = &mut p->a; // expected-note {{mutable borrow occurs here}}
+  const int *borrow q2 = &const p->a; // expected-error {{cannot borrow `(*p).a` as immutable because it is also borrowed as mutable}}
+  struct M m = { .ma = q1, .na = q2 };
+  use_mut(m.ma);
+  use_immut(m.na);
+
+  struct V v1 = { .a = 5 };
+  p = &mut v1;
+  m.na = &const p->a; // expected-note {{immutable borrow occurs here}}
+  m.ma = &mut p->a; // expected-error {{cannot borrow `(*p).a` as mutable because it is also borrowed as immutable}}
+  use_immut(m.na);
+  use_mut(m.ma);
+}
+
+void test6() {
+  int a = 0;
+  int b = 0;
+  struct M m = { &mut a, &const b };
+  struct M *mp = &m;
+  int *borrow p1 = mp->ma;
+  int *borrow p2 = mp->ma;
+  use_mut(p1);
+  use_mut(p2);
+  struct M **mpp = &mp;
+  int *borrow p3 = (*mpp)->ma;
+  int *borrow p4 = (*mpp)->ma;
+  use_mut(p3);
+  use_mut(p4);
+}
+
+void test7() {
+  int local = 2;
+  int *borrow p = &mut local;
+  int *borrow q = &mut *p; // expected-note {{`*p` is borrowed here}}
+                           // expected-note@-1 {{first mut borrow occurs here}}
+  int y = get_by_mut(p) + 2; // expected-error {{cannot use `p` because it was mutably borrowed}}
+                             // expected-error@-1 {{cannot borrow `*p` as mutable more than once at a time}}
+  use_mut(q);
+}

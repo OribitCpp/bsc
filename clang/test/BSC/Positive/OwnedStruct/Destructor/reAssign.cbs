@@ -1,0 +1,66 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+owned struct S {
+public:
+    int a1;
+    char a2;
+    ~S(S this) {}
+};
+
+int foo() {
+  S s1 = {};
+  S s2 = s1;
+  S s3 = {};
+  s1 = s3;
+  s1.a2= 'c';
+  return 1;
+}
+
+int main() {
+  foo();
+  return 0;
+}
+
+// CHECK:struct S {
+// CHECK-NEXT:    int a1;
+// CHECK-NEXT:    char a2;
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:void struct_S_D( struct S this);
+// CHECK-EMPTY:
+// CHECK-NEXT:int foo(void) {
+// CHECK-NEXT:     struct S s1 = {};
+// CHECK-NEXT:    _Bool s1_is_moved = 0;
+// CHECK-NEXT:     struct S s2 = s1;
+// CHECK-NEXT:    _Bool s2_is_moved = 0;
+// CHECK-NEXT:    s1_is_moved = 1;
+// CHECK-NEXT:     struct S s3 = {};
+// CHECK-NEXT:    _Bool s3_is_moved = 0;
+// CHECK-NEXT:    if (!s1_is_moved)
+// CHECK-NEXT:        struct_S_D(s1);
+// CHECK-NEXT:    s1 = s3;
+// CHECK-NEXT:    s1_is_moved = 0;
+// CHECK-NEXT:    s3_is_moved = 1;
+// CHECK-NEXT:    s1.a2 = 'c';
+// CHECK-NEXT:    if (!s3_is_moved)
+// CHECK-NEXT:        struct_S_D(s3);
+// CHECK-NEXT:    if (!s2_is_moved)
+// CHECK-NEXT:        struct_S_D(s2);
+// CHECK-NEXT:    if (!s1_is_moved)
+// CHECK-NEXT:        struct_S_D(s1);
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:int main() {
+// CHECK-NEXT:  foo();
+// CHECK-NEXT:  return 0;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:void struct_S_D( struct S this) {
+// CHECK-NEXT:    _Bool this_is_moved = 0;
+// CHECK-NEXT:}

@@ -1,0 +1,74 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+
+signed char Alice<T> (T a, T b)
+{
+    return a > b ? a : b;
+}
+
+unsigned char Bob<T> (T a, T b)
+{
+    return 'c';
+}
+
+unsigned int Charlie<T> (T a, T b)
+{
+    return a > b ? a : b;
+}
+
+unsigned short Dave<T> (T a, T b)
+{
+    return a > b ? a : b;
+}
+
+
+unsigned long Eve<T> (T a, T b)
+{
+    return a > b ? a : b;
+}
+
+
+long double Frank<T> (T a, T b)
+{
+    return 42.0;
+}
+
+
+long long Garcia<T> (T a, T b)
+{
+    return a > b ? a : b;
+}
+
+
+unsigned long long Henry<T> (T a, T b)
+{
+    return 42.0;
+}
+
+
+signed long long Issac<T> (T a, T b)
+{
+    return 42.0;
+}
+
+
+int main ()
+{
+  signed char alice = Alice<int>(1, 2);
+  unsigned char bob = Bob<int>(1, 2); 
+  unsigned int charlie = Charlie<int>(1, 2);
+  unsigned short dave = Dave<int>(1, 2);
+  unsigned long eve = Eve<int>(1, 2);
+  long double frank = Frank<int>(1, 2);
+  long long garcia = Garcia<int>(1, 2);
+
+  unsigned long long henry = Henry<int>(1, 2);
+  signed long long issac = Issac<int>(1, 2);
+
+  return 0;
+}

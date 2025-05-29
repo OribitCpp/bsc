@@ -1,0 +1,78 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../../../lib/Headers/bsc_include/future.hbs -o %T/future.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include "future.hbs"
+#include <stdlib.h>
+
+async int read(int a) {
+  return 0;
+}
+
+async int f(int start) {
+  int result = await read(1);
+  if (result !=0) {
+    goto ERR;
+  } else if (result != 1) {
+    goto ERR2;
+  }
+  return result;
+ERR:
+  return result;
+ERR2:
+  result = result + 1;
+  return result;  
+}
+
+int main() {
+  trait Future<int>* this = f(1);
+  this->poll();
+  return 0;
+}
+
+// CHECK: struct PollResult_int struct__Futuref_poll(struct _Futuref *this) {
+// CHECK-NEXT:     switch (this->__future_state) {
+// CHECK-NEXT:       case 0:
+// CHECK-NEXT:         goto __L0;
+// CHECK-NEXT:       case 1:
+// CHECK-NEXT:         goto __L1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:   __L0:
+// CHECK-NEXT:     ;
+// CHECK-NEXT:     this->Ft_1 = __read(1);
+// CHECK-NEXT:   __L1:
+// CHECK-NEXT:     ;
+// CHECK-NEXT:     int Res_1;
+// CHECK-NEXT:     struct PollResult_int PR_1 = this->Ft_1.vtable->poll(this->Ft_1.data);
+// CHECK-NEXT:     if (struct_PollResult_int_is_completed(&PR_1, &Res_1)) {
+// CHECK-NEXT:         if (this->Ft_1.data != 0) {
+// CHECK-NEXT:             this->Ft_1.vtable->free(this->Ft_1.data);
+// CHECK-NEXT:             this->Ft_1.data = (void *)0;
+// CHECK-NEXT:         }
+// CHECK-NEXT:     } else {
+// CHECK-NEXT:         this->__future_state = 1;
+// CHECK-NEXT:         return struct_PollResult_int_pending();
+// CHECK-NEXT:     }
+// CHECK-NEXT:     this->result = Res_1;
+// CHECK-NEXT:     if (this->result != 0) {
+// CHECK-NEXT:         goto ERR;
+// CHECK-NEXT:     } else if (this->result != 1) {
+// CHECK-NEXT:         goto ERR2;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     this->__future_state = -1;
+// CHECK-NEXT:     int __RES_RETURN = this->result;
+// CHECK-NEXT:     return struct_PollResult_int_completed(__RES_RETURN);
+// CHECK-NEXT:   ERR:
+// CHECK-NEXT:     this->__future_state = -1;
+// CHECK-NEXT:     int __RES_RETURN_1 = this->result;
+// CHECK-NEXT:     return struct_PollResult_int_completed(__RES_RETURN_1);
+// CHECK-NEXT:   ERR2:
+// CHECK-NEXT:     this->result = this->result + 1;
+// CHECK-NEXT:     this->__future_state = -1;
+// CHECK-NEXT:     int __RES_RETURN_2 = this->result;
+// CHECK-NEXT:     return struct_PollResult_int_completed(__RES_RETURN_2);
+// CHECK-NEXT: }

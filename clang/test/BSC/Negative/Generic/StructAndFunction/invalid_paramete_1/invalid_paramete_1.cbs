@@ -1,0 +1,15 @@
+// RUN: %clang_cc1 -verify %s
+
+struct S<T, struct A>           // expected-error {{a non-type template parameter cannot have type struct}}
+{
+  T a;
+};
+
+T test<struct B, T>(T a)        // expected-error {{a non-type template parameter cannot have type struct}}
+{
+  return a;
+}
+
+int main() {
+  return 0;
+}

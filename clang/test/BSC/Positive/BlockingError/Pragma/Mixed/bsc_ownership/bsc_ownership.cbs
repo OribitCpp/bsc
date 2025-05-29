@@ -1,0 +1,68 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// expected-no-diagnostics
+
+void free_owned_new(void * owned p);
+
+typedef struct A {
+	int * owned a;
+} A;
+
+void test1(A * owned p) {
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Ebsc-ownership"
+	free_owned_new((void * owned)p); // invalid cast to `void * owned` of not all moved value: `p`, p.a is owned
+    #pragma GCC diagnostic pop
+}
+
+int * owned test2() {
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Ebsc-ownership"
+	int * owned a;
+	return a;        // use of uninitialized value: `a`
+    #pragma GCC diagnostic pop
+}
+
+safe T *owned safe_malloc<T>(T t);
+safe void test3(void) {
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Ebsc-ownership"
+    int *owned _Nullable p = nullptr;
+    int cond = 1;
+    if (cond) {
+        p = safe_malloc<int>(10);
+        *p = 10;
+    }
+    p = nullptr; //assign to owned value: `p`
+    #pragma GCC diagnostic pop
+}
+
+// CHECK:      struct A;
+// CHECK-NEXT: typedef struct A A;
+// CHECK-EMPTY: 
+// CHECK:      struct A {
+// CHECK-NEXT:     int * a;
+// CHECK-NEXT: };
+// CHECK-EMPTY: 
+// CHECK:      static int * safe_malloc_int(int t);
+// CHECK-EMPTY: 
+// CHECK:      void free_owned_new(void * p);
+// CHECK-EMPTY: 
+// CHECK:      void test1(A * p) {
+// CHECK-NEXT:     free_owned_new((void *)p);
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int * test2(void) {
+// CHECK-NEXT:     int * a;
+// CHECK-NEXT:     return a;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      void test3(void) {
+// CHECK-NEXT:     int * p = 0;
+// CHECK-NEXT:     int cond = 1;
+// CHECK-NEXT:     if (cond) {
+// CHECK-NEXT:         p = safe_malloc_int(10);
+// CHECK-NEXT:         *p = 10;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     p = 0;
+// CHECK-NEXT: }

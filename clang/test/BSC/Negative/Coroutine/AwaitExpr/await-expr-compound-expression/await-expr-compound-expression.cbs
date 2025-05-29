@@ -1,0 +1,14 @@
+// RUN: %clang_cc1 -internal-isystem %S/../../../../../../lib/Headers/bsc_include -verify %s
+
+#include "../../async-func-read-opposite.hbs"
+
+async int f(int start) { 
+    int x = await read(2) + 3; // #1
+    return 42;
+}
+
+// expected-error@#1 {{await expression is not allowed to appear in binary operator expression}}
+
+int main() {
+  return 0;
+}

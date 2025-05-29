@@ -1,0 +1,106 @@
+// RUN: %clang -rewrite-bsc %S/rewrite_bsc_generic_struct_with_header.hbs -o %T/rewrite_bsc_generic_struct_with_header.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+#include "rewrite_bsc_generic_struct_with_header.hbs"
+
+struct S {
+    int a;
+};
+
+int main() {
+    LinkedList<struct S> list = LinkedList<struct S>::new();
+    struct S s = {1};
+    list.push_back(s);
+    return 0;
+}
+
+// CHECK:      #include <stdlib.h>
+// CHECK-EMPTY:
+// CHECK-EMPTY:
+// CHECK-NEXT: struct _BSC_ListNode_struct_S;
+// CHECK-NEXT: struct LinkedList_struct_S;
+// CHECK-NEXT: struct S;
+// CHECK-NEXT: struct S {
+// CHECK-NEXT:   int a;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct LinkedList_struct_S {
+// CHECK-NEXT:     struct _BSC_ListNode_struct_S *head;
+// CHECK-NEXT:     struct _BSC_ListNode_struct_S *tail;
+// CHECK-NEXT:     size_t len;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct _BSC_ListNode_struct_S {
+// CHECK-NEXT:   struct _BSC_ListNode_struct_S *next;
+// CHECK-NEXT:   struct _BSC_ListNode_struct_S *prev;
+// CHECK-NEXT:   struct S element;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: static struct _BSC_ListNode_struct_S *struct__BSC_ListNode_struct_S_new(struct S el);
+// CHECK-EMPTY:
+// CHECK-NEXT: static  struct LinkedList_struct_S struct_LinkedList_struct_S_new(void);
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_LinkedList_struct_S_push_back( struct LinkedList_struct_S * this, struct S el);
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_LinkedList_struct_S_D( struct LinkedList_struct_S this);
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:    struct LinkedList_struct_S list = struct_LinkedList_struct_S_new();
+// CHECK-NEXT:   _Bool list_is_moved = 0;
+// CHECK-NEXT:   struct S s = {1};
+// CHECK-NEXT:   struct_LinkedList_struct_S_push_back(&list, s);
+// CHECK-NEXT:   if (!list_is_moved)
+// CHECK-NEXT:     struct_LinkedList_struct_S_D(list);
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static struct _BSC_ListNode_struct_S *struct__BSC_ListNode_struct_S_new(struct S el) {
+// CHECK-NEXT:   struct _BSC_ListNode_struct_S *rv = (struct _BSC_ListNode_struct_S *)malloc(sizeof(struct _BSC_ListNode_struct_S));
+// CHECK-NEXT:   if (!rv) {
+// CHECK-NEXT:   }
+// CHECK-NEXT:   rv->next = ((void *)0);
+// CHECK-NEXT:   rv->prev = ((void *)0);
+// CHECK-NEXT:   rv->element = el;
+// CHECK-NEXT:   return rv;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static  struct LinkedList_struct_S struct_LinkedList_struct_S_new(void) {
+// CHECK-NEXT:   {
+// CHECK-NEXT:      struct LinkedList_struct_S rv = {((void *)0), ((void *)0), 0};
+// CHECK-NEXT:     _Bool rv_is_moved = 0;
+// CHECK-NEXT:     return rv;
+// CHECK-NEXT:   }
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_LinkedList_struct_S_push_back( struct LinkedList_struct_S * this, struct S el) {
+// CHECK-NEXT:   {
+// CHECK-NEXT:     struct _BSC_ListNode_struct_S *node = struct__BSC_ListNode_struct_S_new(el);
+// CHECK-NEXT:     node->prev = this->tail;
+// CHECK-NEXT:     if (this->tail == ((void *)0)) {
+// CHECK-NEXT:       this->head = node;
+// CHECK-NEXT:     } else {
+// CHECK-NEXT:       this->tail->next = node;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     this->tail = node;
+// CHECK-NEXT:   }
+// CHECK-NEXT:   this->len += 1;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_LinkedList_struct_S_D( struct LinkedList_struct_S this) {
+// CHECK-NEXT:   _Bool this_is_moved = 0;
+// CHECK-NEXT:   struct _BSC_ListNode_struct_S *temp = this.head;
+// CHECK-NEXT:   while (temp != ((void *)0))
+// CHECK-NEXT:     {
+// CHECK-NEXT:       temp = this.head->next;
+// CHECK-NEXT:       {
+// CHECK-NEXT:           struct S tempEle = this.head->element;
+// CHECK-NEXT:       }
+// CHECK-NEXT:       free((void *)this.head);
+// CHECK-NEXT:       this.head = temp;
+// CHECK-NEXT:     }
+// CHECK-NEXT:   this.head = ((void *)0);
+// CHECK-NEXT:   this.tail = ((void *)0);
+// CHECK-NEXT: }

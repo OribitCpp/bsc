@@ -1,0 +1,57 @@
+// Test without serialization:
+// RUN: %clang_cc1 -ast-dump -verify %s \
+// RUN: | FileCheck -strict-whitespace %s
+
+struct A {
+    owned int a;
+    int owned b;
+    int owned * c;
+    int* owned d;
+    int* owned* owned e;
+};
+// CHECK:       RecordDecl 0x{{[^ ]*}} {{.*}}struct A definition
+// CHECK-NEXT:  FieldDecl 0x{{[^ ]*}} {{.*}}a 'owned int'
+// CHECK-NEXT:  FieldDecl 0x{{[^ ]*}} {{.*}}b 'owned int'
+// CHECK-NEXT:  FieldDecl 0x{{[^ ]*}} {{.*}}c 'owned int *'
+// CHECK-NEXT:  FieldDecl 0x{{[^ ]*}} {{.*}}d 'int *owned'
+// CHECK-NEXT:  FieldDecl 0x{{[^ ]*}} {{.*}}e 'int *owned *owned'
+
+void ownedTest0() {
+    int owned a;
+    int* owned b;
+    int* owned * owned d;
+    return;
+}
+// CHECK:       FunctionDecl 0x{{[^ ]*}} {{.*}}ownedTest0 'void (void)'
+// CHECK-NEXT:  CompoundStmt 0x{{[^ ]*}} {{.*}}
+// CHECK-NEXT:  DeclStmt 0x{{[^ ]*}} {{.*}}
+// CHECK-NEXT:  VarDecl 0x{{[^ ]*}} {{.*}}a 'owned int'
+// CHECK-NEXT:  DeclStmt 0x{{[^ ]*}} {{.*}}
+// CHECK-NEXT:  VarDecl 0x{{[^ ]*}} {{.*}}b 'int *owned'
+// CHECK-NEXT:  DeclStmt 0x{{[^ ]*}} {{.*}}
+// CHECK-NEXT:  VarDecl 0x{{[^ ]*}} {{.*}}d 'int *owned *owned'
+// CHECK-NEXT:  ReturnStmt 0x{{[^ ]*}} {{.*}}
+
+int ownedTest1(owned int x, owned int* y, owned int* owned c, owned int* owned * d) {
+    return 0;
+} // expected-error {{memory leak of value: `c`}}
+// CHECK:       FunctionDecl 0x{{[^ ]*}} {{.*}}ownedTest1 'int (owned int, owned int *, owned int *owned, owned int *owned *)'
+// CHECK-NEXT:  ParmVarDecl 0x{{[^ ]*}} {{.*}}x 'owned int'
+// CHECK-NEXT:  ParmVarDecl 0x{{[^ ]*}} {{.*}}y 'owned int *'
+// CHECK-NEXT:  ParmVarDecl 0x{{[^ ]*}} {{.*}}c 'owned int *owned'
+// CHECK-NEXT:  ParmVarDecl 0x{{[^ ]*}} {{.*}}d 'owned int *owned *'
+// CHECK-NEXT:  CompoundStmt 0x{{[^ ]*}} {{.*}}
+// CHECK-NEXT:  ReturnStmt 0x{{[^ ]*}} {{.*}}
+// CHECK-NEXT:  IntegerLiteral 0x{{[^ ]*}} {{.*}}'int' 0
+
+int* owned ownedTest2(int* owned p) {
+    return p;
+}
+// CHECK:       FunctionDecl 0x{{[^ ]*}} {{.*}}ownedTest2 'int *owned (int *owned)'
+// CHECK-NEXT:  ParmVarDecl 0x{{[^ ]*}} {{.*}}p 'int *owned'
+// CHECK-NEXT:  CompoundStmt 0x{{[^ ]*}} {{.*}}
+// CHECK-NEXT:  ReturnStmt 0x{{[^ ]*}} {{.*}}
+// CHECK-NEXT:  ImplicitCastExpr 0x{{[^ ]*}} {{.*}}'int *owned'
+// CHECK-NEXT:  DeclRefExpr 0x{{[^ ]*}} {{.*}}'int *owned'
+
+

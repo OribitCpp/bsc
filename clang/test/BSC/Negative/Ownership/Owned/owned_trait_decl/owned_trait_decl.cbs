@@ -1,0 +1,32 @@
+// RUN: %clang_cc1 -verify %s
+
+trait T {
+  int increase(This* this);
+};
+
+trait U {
+  int increase(This* this);
+};
+
+int int::increase(This* this) {
+  return *this + 1;
+}
+
+impl trait T for int;
+impl trait U for int;
+
+void test1(int x, float y, double d) {
+  trait T* owned t1 = (int* owned)&x;
+  trait T* owned t2 = (float* owned)&y; // expected-error {{expected a pointer type which has implemented 'trait T', found 'float'}}
+                                        // expected-warning@-1 {{incompatible pointer types initializing 'trait T *owned' with an expression of type 'float *owned'}}
+  trait T* owned t3 = (double* owned)&d; // expected-error {{expected a pointer type which has implemented 'trait T', found 'double'}}
+                                         // expected-warning@-1 {{incompatible pointer types initializing 'trait T *owned' with an expression of type 'double *owned'}}
+}
+
+void test2(int x, float y, double d) {
+  trait T* owned t1 = (int* owned)&x;
+  trait T* owned t2 = t1;
+  trait U* owned u1 = (int* owned)&x;
+  trait T* owned t3 = u1; // expected-error {{incompatible owned types, cannot cast 'struct __Trait_U_Owned' to 'trait T *owned'}}
+                          // expected-error@-1 {{expected a pointer type which has implemented 'trait T', found 'struct __Trait_U_Owned'}}
+}

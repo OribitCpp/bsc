@@ -1,0 +1,46 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+constexpr int foo(int n) {
+    if (n == 0 || n == 1) return n;
+    else return foo(n - 1) + foo(n - 2);
+}
+
+constexpr int bar<T, int N>(int n) {
+    if (n == 0 || n == 1) return n;
+    else return bar<T, int N>(n - 1) + bar<T, int N>(n - 2);
+}
+
+constexpr int int::foo_static(int n) {
+    if (n == 0 || n == 1) return n;
+    else return int::foo_static(n - 1) + int::foo_static(n - 2);
+}
+
+struct S {};
+constexpr int struct S::foo_static(int n) {
+    if (n == 0 || n == 1) return n;
+    else return struct S::foo_static(n - 1) + struct S::foo_static(n - 2);
+}
+
+struct M<T, int N> {};
+constexpr int struct M<T, int N>::foo_static(int n) {
+    if (n == 0 || n == 1) return n;
+    else return struct M<T, int N>::foo_static(n - 1) + struct M<T, int N>::foo_static(n - 2);
+}
+
+int main() {
+    _Static_assert(foo(3) == 2, "fail");
+    _Static_assert(bar<int, 5>(3) == 2, "fail");
+    _Static_assert(int::foo_static(3) == 2, "fail");
+    _Static_assert(struct S::foo_static(3) == 2, "fail");
+    _Static_assert(struct M<int, 5>::foo_static(3) == 2, "fail");
+    _Static_assert(struct M<struct M<int, 5>, foo(3)>::foo_static(3) == 2, "fail");
+    _Static_assert(struct M<struct M<int, 5>, int::foo_static(3)>::foo_static(3) == 2, "fail");
+    _Static_assert(struct M<struct M<int, 5>, struct S::foo_static(3)>::foo_static(3) == 2, "fail");
+    _Static_assert(struct M<struct M<int, 5>, struct M<int, 5>::foo_static(3)>::foo_static(3) == 2, "fail");
+    return 0;
+}

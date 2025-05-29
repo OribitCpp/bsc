@@ -1,0 +1,56 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -rewrite-bsc -line %s -o %t-rwline.c
+// RUN: FileCheck --input-file=%t-rwline.c %s --check-prefix=CHECK-L
+// expected-no-diagnostics
+
+typedef long long int LLint;
+typedef unsigned long long int ULLint;
+
+T foo_1<int B, unsigned C, T>(T a) {
+    T data[B];
+    return a;
+}
+
+ULLint foo_2<ULLint B, T, LLint C>(T a) {
+    T data[B];
+    ULLint c = C;
+    return a;
+}
+
+LLint foo_3<LLint B>(int a) {
+  LLint b = 1;
+  return a > B ? a : B;
+}
+
+// CHECK-L: #line 13 "{{.*}}.cbs"
+// CHECK-L-NEXT: static int foo_1_5_6_int(int a) {
+// CHECK-L-NEXT:    int data[5];
+// CHECK-L-NEXT:    return a;
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 18 "{{.*}}.cbs"
+// CHECK-L-NEXT: static ULLint foo_2_5_int_6(int a) {
+// CHECK-L-NEXT:    int data[5];
+// CHECK-L-NEXT:    ULLint c = 6LL;
+// CHECK-L-NEXT:    return a;
+// CHECK-L-NEXT: }
+
+// CHECK-L: #line 24 "{{.*}}.cbs"
+// CHECK-L-NEXT: static LLint foo_3_5(int a) {
+// CHECK-L-NEXT:    LLint b = 1;
+// CHECK-L-NEXT:    return a > 5LL ? a : 5LL;
+// CHECK-L-NEXT: }
+
+int main() {
+  int a1 = foo_1<5, 6, int>(1);
+
+  int a2 = foo_2<5, int, 6>(1);
+
+  LLint a3 = foo_3<5>(1);
+  
+  return 0;
+}

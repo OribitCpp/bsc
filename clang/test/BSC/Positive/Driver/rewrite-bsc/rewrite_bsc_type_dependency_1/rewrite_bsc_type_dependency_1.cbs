@@ -1,0 +1,131 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+struct Outer {
+  int x;
+  struct Inner {
+    float y;
+    struct Nested {
+        char z;
+    } nested;
+  } inner;
+};
+
+struct U {
+  struct S* s[3];
+  int a;
+};
+
+struct S {
+  int a;
+  int b;
+};
+
+typedef enum {
+  READ,
+  WRITE
+} ENUM;
+
+union UU {
+  float a;
+  struct S s;
+  struct U* u;
+  int b;
+};
+
+typedef struct {
+  struct S s;
+  struct U u;
+  ENUM e;
+} S2;
+
+struct T1 {
+  S2* p;
+  struct S s[3][4][5];
+};
+
+enum E {
+  A,
+  B,
+  C
+};
+
+struct T2 {
+  enum E e;
+  union {
+    struct S s1;
+    S2* s2;
+  };
+  float a;
+  long b;
+};
+
+int main() {
+  return 0;
+}
+
+
+// CHECK: enum _TD_ENUM {
+// CHECK-DAG:   READ,
+// CHECK-DAG:   WRITE
+// CHECK-DAG: };
+
+// CHECK-DAG: typedef enum _TD_ENUM ENUM;
+
+// CHECK-DAG: typedef struct _TD_S2 S2;
+
+// CHECK-DAG: enum E {
+// CHECK-DAG:   A,
+// CHECK-DAG:   B,
+// CHECK-DAG:   C
+// CHECK-DAG: };
+
+// CHECK-DAG: struct U {
+// CHECK-DAG:   struct S* s[3];
+// CHECK-DAG:   int a;
+// CHECK-DAG: };
+
+// CHECK-DAG: struct S {
+// CHECK-DAG:   int a;
+// CHECK-DAG:   int b;
+// CHECK-DAG: };
+
+// CHECK-DAG: struct T1 {
+// CHECK-DAG:   S2* p;
+// CHECK-DAG:   struct S s[3][4][5];
+// CHECK-DAG: };
+
+// CHECK-DAG: struct _TD_S2 {
+// CHECK-DAG:   struct S s;
+// CHECK-DAG:   struct U u;
+// CHECK-DAG:   ENUM e;
+// CHECK-DAG: };
+
+// CHECK-DAG: union UU {
+// CHECK-DAG:   float a;
+// CHECK-DAG:   struct S s;
+// CHECK-DAG:   struct U* u;
+// CHECK-DAG:   int b;
+// CHECK-DAG: };
+
+// CHECK-DAG: struct Outer {
+// CHECK-DAG:   int x;
+// CHECK-DAG:   struct Inner {
+// CHECK-DAG:     float y;
+// CHECK-DAG:     struct Nested {
+// CHECK-DAG:         char z;
+// CHECK-DAG:     } nested;
+// CHECK-DAG:   } inner;
+// CHECK-DAG: };
+
+// CHECK-DAG: struct T2 {
+// CHECK-DAG:   enum E e;
+// CHECK-DAG:   union {
+// CHECK-DAG:     struct S s1;
+// CHECK-DAG:     S2* s2;
+// CHECK-DAG:   };
+// CHECK-DAG:   float a;
+// CHECK-DAG:   long b;
+// CHECK-DAG: };

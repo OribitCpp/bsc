@@ -1,0 +1,8 @@
+
+enum E {
+  X3
+};
+
+int enum E::to_int(enum E* this) { // expected-note {{previous definition is here}}
+  return (int)*this;
+}

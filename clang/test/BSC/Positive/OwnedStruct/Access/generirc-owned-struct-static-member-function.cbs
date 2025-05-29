@@ -1,0 +1,33 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+owned struct A<T> {
+    int a;
+public:    
+    int f() {return 1; }
+};
+
+int main() {
+    int a = A<int>::f();
+    return a - 1;
+}
+
+
+// CHECK: struct A_int {
+// CHECK-NEXT:     int a;
+// CHECK-NEXT: };
+// CHECK-EMPTY: 
+// CHECK-NEXT: static int struct_A_int_f(void);
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:     int a = struct_A_int_f();
+// CHECK-NEXT:     return a - 1;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static int struct_A_int_f(void) {
+// CHECK-NEXT:     return 1;
+// CHECK-NEXT: }

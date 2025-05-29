@@ -1,0 +1,57 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+struct F
+{
+    int a;
+};
+
+__attribute__((operator +))
+int int::intMember(int *this, struct F f2){      // expected-error {{cannot combine with previous 'int' declaration specifier}}
+    return *this + f2.a;                         // expected-error@-1 {{expected identifier or '('}}
+}
+
+__attribute__((operator -))
+int struct F::structMember(struct F *this, struct F f2){    // expected-error {{cannot combine with previous 'int' declaration specifier}}
+    return this->a - f2.a;                                   // expected-error@-1 {{expected identifier or '('}}
+}
+
+owned struct G {
+    public:
+    int a;
+    __attribute__((operator +))
+    int ownedMember(G *this, struct F f) {    // expected-error {{function unsupport overload}}
+        return this->a + f.a;
+    }
+    __attribute__((operator +))
+    ~G(G this) {}                             // expected-error {{function unsupport overload}}
+};
+
+trait H {
+  __attribute__((operator +))
+  int foo(This* this);                      // expected-error {{function unsupport overload}}
+                                            // expected-error@-1 {{overloaded 'foo' must have at least one parameter of class or enumeration type}}
+};
+
+void int::foo(int* this) {
+}
+
+owned struct S {
+public:
+    int a;
+};
+
+__attribute__((operator +))
+S S::add_struct(S *this, S s) {            // expected-error {{function unsupport overload}}
+    S add_result = {this->a + s.a};
+    return add_result;
+}
+
+int main() {
+    S s1 = {1};
+    S s2 = {2};
+    S s3 = s1 + s2;                        // expected-error {{invalid operands to binary expression ('owned struct S' and 'owned struct S'}}
+    if (s3.a == 3) {
+        return 0;
+    }
+    return 1;
+}

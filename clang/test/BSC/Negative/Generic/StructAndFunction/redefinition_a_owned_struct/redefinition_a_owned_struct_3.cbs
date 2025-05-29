@@ -1,0 +1,22 @@
+// RUN: %clang_cc1 %s -verify 
+
+owned struct Redefiniton<T> {
+public:
+    T Redefin;
+
+public:
+    ~Redefiniton(Redefiniton<T> this) {
+
+    }
+};
+
+long test_redefinition(long x, const Redefiniton<long> *r1) {       // expected-note{{previous definition is here}}
+
+    Redefiniton<long> x = *r1;                                      // expected-error{{redefinition of 'x' with a different type: 'owned Redefiniton<long>' vs 'long'}}
+
+    return x;
+}
+
+int main() {
+    return 0;
+}

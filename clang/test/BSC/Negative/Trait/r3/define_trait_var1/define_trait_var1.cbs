@@ -1,0 +1,3 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F {}G; // expected-error {{only trait pointer type is allowed to be declared}}

@@ -1,0 +1,16 @@
+// RUN: %clang_cc1 -verify %s
+
+struct S {
+  trait M* m; // expected-error {{'trait M' must be defined before it can be used}}
+};
+
+void f(trait T* t) {}  // expected-warning {{declaration of 'trait T' will not be visible outside of this function}}
+// expected-error@-1 {{'trait T' must be defined before it can be used}}
+
+trait T* test2(){} // expected-error {{'trait T' must be defined before it can be used}}
+
+int main() {
+  int a = 3;
+  trait T* t = &a; // expected-warning {{incompatible pointer types initializing 'trait T *' with an expression of type 'int *'}}
+  return 0;
+}

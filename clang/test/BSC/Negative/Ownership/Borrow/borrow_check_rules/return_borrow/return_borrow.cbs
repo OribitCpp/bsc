@@ -1,0 +1,167 @@
+// RUN: %clang_cc1 -verify %s
+
+struct S {
+  int *borrow p;
+};
+
+struct G {
+  struct S s;
+};
+
+struct P {
+  int *b;
+};
+
+struct Q {
+  struct P g;
+};
+
+T *owned safe_malloc<T>(T value);
+void free_owned<T>(T *owned p);
+void free(void *);
+
+int *borrow test1(int *borrow p) {
+  int local = 42;
+  return &mut local; // expected-error {{`local` does not live long enough}}
+                     // expected-note@-1 {{`local` dropped here while still borrowed}}
+}
+
+int *borrow test2(int *borrow p) {
+  int local = 42;
+  p = &mut local; // expected-error {{`local` does not live long enough}}
+  return p; // expected-note {{`local` dropped here while still borrowed}}
+}
+
+// FIXME: parameters lakes CFGScopeEnd
+int *borrow test3(int *borrow p, int a) {
+  return &mut a; // expected-error {{`a` does not live long enough}}
+                 // expected-note@-1 {{`a` dropped here while still borrowed}}
+}
+
+// FIXME: parameters lakes CFGScopeEnd
+int *borrow test4(int *borrow p, int a) {
+  p = &mut a; // expected-error {{`a` does not live long enough}}
+  return p; // expected-note {{`a` dropped here while still borrowed}}
+}
+
+int *borrow test5(int *borrow p) {
+  int local = 5;
+  p = &mut local; // expected-error {{`local` does not live long enough}}
+  int* borrow p1 = &mut *p;
+  return p1; // expected-note {{`local` dropped here while still borrowed}}
+}
+
+int *borrow test6(int *borrow p) {
+  int local = 5;
+  p = &mut local; // expected-error {{`local` does not live long enough}}
+  return &mut *p; // expected-note {{`local` dropped here while still borrowed}}
+}
+
+int *borrow test7(int *borrow p) {
+  int *owned oriPtr = safe_malloc<int>(0);
+  p = &mut *oriPtr; // expected-error {{`*oriPtr` does not live long enough}}
+                    // expected-note@-1 {{`*oriPtr` is borrowed here}}
+  free_owned<int>(oriPtr); // expected-error {{cannot move out of `oriPtr` because it is borrowed}}
+  return p; // expected-note {{`*oriPtr` dropped here while still borrowed}}
+}
+
+// FIXME: parameters lakes CFGScopeEnd
+int *borrow test8(int *owned oriPtr, int *borrow p) {
+  p = &mut *oriPtr; // expected-note {{`*oriPtr` is borrowed here}}
+                    // expected-error@-1 {{`*oriPtr` does not live long enough}} 
+  free_owned<int>(oriPtr); // expected-error {{cannot move out of `oriPtr` because it is borrowed}}
+  return p; // expected-note {{`*oriPtr` dropped here while still borrowed}}
+}
+
+int *borrow test9(int *borrow p) {
+  int local = 42;
+  if (local > 0) {
+    p = &mut local; // expected-error {{`local` does not live long enough}}
+    return &mut *p; // expected-note {{`local` dropped here while still borrowed}}
+  } else
+    return p;
+}
+
+int *borrow test10(int *borrow p) {
+  int local = 42;
+  if (local > 0)
+    return &mut local; // expected-error {{`local` does not live long enough}}
+                       // expected-note@-1 {{`local` dropped here while still borrowed}}
+  else {
+    p = &mut local; // expected-error {{`local` does not live long enough}}
+    return p; // expected-note {{`local` dropped here while still borrowed}}
+  }
+}
+
+int *borrow test11(int *borrow p) {
+  int local = 42;
+  if (local > 0) {
+    int local2 = 42;
+    if (local2 > 0)
+      return &mut local2; // expected-error {{`local2` does not live long enough}}
+                          // expected-note@-1 {{`local2` dropped here while still borrowed}}
+    else
+      return p;
+  } else {
+    int local3 = 42;
+    if (local3 > 0)
+      return &mut local3; // expected-error {{`local3` does not live long enough}}
+                          // expected-note@-1 {{`local3` dropped here while still borrowed}}
+    else
+      return p;
+  }
+}
+
+int *borrow test12(int *borrow p) {
+  int local = 42;
+  int *owned oriPtr = safe_malloc<int>(0);
+  if (local > 0) {
+    free_owned<int>(oriPtr);
+    return &mut *oriPtr; // expected-error {{use of moved value: `oriPtr`}}
+  }
+  free_owned<int>(oriPtr);
+  return p;
+}
+
+int *borrow test13(int *borrow p) {
+  int *owned oriPtr = safe_malloc<int>(0);
+  if (1) {
+    free_owned<int>(oriPtr);
+    return &mut *oriPtr; // expected-error {{use of moved value: `oriPtr`}}
+  }
+  return &mut *oriPtr;
+}
+
+struct S test14(struct S s) {
+  int local = 5;
+  s.p = &mut local; // expected-error {{`local` does not live long enough}}
+  return s; // expected-note {{`local` dropped here while still borrowed}}
+}
+
+struct S test15(struct G g) {
+  int local = 5;
+  g.s.p = &mut local; // expected-error {{`local` does not live long enough}}
+  return g.s; // expected-note {{`local` dropped here while still borrowed}}
+}
+
+struct G test16(struct G g) {
+  int local = 5;
+  g.s.p = &mut local; // expected-error {{`local` does not live long enough}}
+  return g; // expected-note {{`local` dropped here while still borrowed}}
+}
+
+int *borrow test17(int *borrow p, int *borrow q) {
+  int local = 42;
+  p = &mut local; // expected-error {{`local` does not live long enough}}
+  int a = 3;
+  q = &mut a; // expected-error {{`a` does not live long enough}}
+  return p; // expected-note {{`a` dropped here while still borrowed}}
+            // expected-note@-1 {{`local` dropped here while still borrowed}}
+}
+
+int *borrow test18(int *borrow p) {
+  struct Q q;
+  struct Q *borrow q1 = &mut q; // expected-error {{`q` does not live long enough}}
+  int *borrow r = &mut *q1->g.b;
+  return r; // expected-note {{`q` dropped here while still borrowed}}
+}

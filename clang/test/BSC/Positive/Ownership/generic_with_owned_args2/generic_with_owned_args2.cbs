@@ -1,0 +1,44 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+// expected-no-diagnostics
+
+owned T Func_1<T>(T t)
+{
+    T owned tmp = (owned T)t;
+    return tmp;
+}
+
+void consume_owned(int* owned p) {
+    int* p2 = (int*)p;
+    return;
+}
+
+void test() {
+    int a = 10;
+    int* owned p1 = Func_1<int*>(&a);
+    consume_owned(p1);
+    return;
+}
+
+
+void test2() {
+    int a = 10;
+    int* owned p1 = Func_1<int* owned>((int* owned)&a);
+    consume_owned(p1);
+    return;
+}
+
+typedef int* owned ownedIntPtr;
+
+void test3() {
+    int a = 10;
+    int* owned p1 = Func_1<ownedIntPtr>((int* owned)&a);
+    consume_owned(p1);
+    return;
+}
+
+int main() {
+    test();
+    test2();
+    test3();
+    return 0;
+}

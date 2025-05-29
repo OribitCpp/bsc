@@ -1,0 +1,29 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+safe safe int add(int x, int y) {  // expected-error {{duplicate 'safe' declaration specifier}}
+  return x + y;
+}
+
+unsafe safe int sub(int x, int y) {  // expected-error {{duplicate 'unsafe' declaration specifier}}
+  return x - y;
+}
+
+safe safe int (*p)(int a);    // expected-error {{duplicate 'safe' declaration specifier}}
+unsafe safe int (*q)(int a);  // expected-error {{duplicate 'unsafe' declaration specifier}}
+
+typedef safe safe int (*m)(int a);      // expected-error {{duplicate 'safe' declaration specifier}}
+typedef unsafe unsafe int (*n)(int a);  // expected-error {{duplicate 'unsafe' declaration specifier}}
+
+int main()
+{
+  safe safe {      // expected-error {{duplicate 'safe' declaration specifier}}
+    int a = 1;
+  }
+  unsafe safe {  // expected-error {{duplicate 'unsafe' declaration specifier}}
+    int b = 1;
+  }
+  safe safe int (*r)(int a);    // expected-error {{duplicate 'safe' declaration specifier}}
+  unsafe safe int (*s)(int a);  // expected-error {{duplicate 'unsafe' declaration specifier}}
+
+return 0;
+}

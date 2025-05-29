@@ -1,0 +1,132 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+const int *borrow g_b = (const int *borrow)(void *)0;    // expected-error {{type of global variable cannot qualified by 'borrow'}}
+int * borrow g_d = (int *borrow)(void *)0;               // expected-error {{type of global variable cannot qualified by 'borrow'}}
+typedef int * borrow typeborrow;
+typeborrow g_g = (int *borrow)(void *)0;                 // expected-error {{type of global variable cannot qualified by 'borrow', 'typeborrow' (aka 'int *borrow') contains 'borrow' type}}
+typedef const int * borrow consteborrow;
+consteborrow g_h = (const int *borrow)(void *)0;         // expected-error {{type of global variable cannot qualified by 'borrow', 'consteborrow' (aka 'const int *borrow') contains 'borrow' type}}
+
+int g_e;
+int g_f;
+safe void test_1(void) {
+    const int * borrow a = &const g_e;
+    int * borrow b = &mut g_f;                  // expected-error {{global or static variables are not allowed to be mutably borrowed within the safe zone}}
+}
+
+void test_2(void) {
+    int t_a = 1;
+    int *owned t_b = (int *owned)&t_a;
+    int t_c = 1;
+    int *owned t_d = (int *owned)&t_c;
+    int t_g;
+    int *t_e = &t_g;
+    int *t_f = &t_g;
+
+    safe {
+        int c = 1;
+        const int * borrow d= &const c;
+        int e = 1;
+        int * borrow f = &mut e;
+        const int * borrow g = &const *t_e;      // expected-error {{'*' operator is forbidden in the safe zone}}
+        int * borrow h = &mut *t_f;              // expected-error {{'*' operator is forbidden in the safe zone}}
+        const int * borrow i = &const *d;
+        int * borrow j = &mut *f;
+        int * borrow k = &mut *t_b;
+        const int * borrow l = &const *t_d;
+    }
+
+    int c = 1;
+    const int * borrow d= &const c;
+   
+    int e = 1;
+    int * borrow f = &mut e;
+    const int * borrow g = &const *f;
+    int * borrow h = &mut *f;
+
+    const int * borrow i = &const *d;
+    int * borrow j = &mut *f;
+    int * borrow k = &mut *t_b;
+    const int * borrow l = &const *t_d;
+}
+
+void test_3(void) {
+    int t_a = 1;
+    int * t_b = &t_a;
+    safe {
+        // owned point <-> raw point 
+        int * owned a = (int * owned)t_b;   // expected-error {{conversion from type 'int *' to 'int *owned' is forbidden in the safe zone}}
+        int * b = (int *)a;                 // expected-error {{conversion from type 'int *owned' to 'int *' is forbidden in the safe zone}}
+        int * owned c = t_b;                // expected-error {{conversion from type 'int *' to 'int *owned' is forbidden in the safe zone}}
+        int * d = c;                        // expected-error {{conversion from type 'int *owned' to 'int *' is forbidden in the safe zone}}
+    }
+
+    int t_c = 1;
+    int * owned t_d = (int * owned)&t_c;
+    int t_e = 1;
+    int * borrow t_f = &mut t_e;
+    int t_g = 1;
+    const int * borrow t_h = &const t_g;
+    safe {
+        // owned point <-> borrow point
+        int * owned a = (int * owned)t_f;               // expected-error {{conversion from type 'int *borrow' to 'int *owned' is forbidden in the safe zone}}
+        int * owned b = (int * owned)t_h;               // expected-error {{conversion from type 'const int *borrow' to 'int *owned' is forbidden in the safe zone}}
+        int * borrow c = (int * borrow)a;               // expected-error {{conversion from type 'int *owned' to 'int *borrow' is forbidden in the safe zone}}
+        const int * borrow d = (const int * borrow)b;   // expected-error {{conversion from type 'int *owned' to 'const int *borrow' is forbidden in the safe zone}}
+
+        int * owned e = t_f;                            // expected-error {{conversion from type 'int *borrow' to 'int *owned' is forbidden in the safe zone}}
+        int * owned f = t_h;                            // expected-error {{conversion from type 'const int *borrow' to 'int *owned' is forbidden in the safe zone}}
+        int * borrow g = e;                             // expected-error {{conversion from type 'int *owned' to 'int *borrow' is forbidden in the safe zone}}
+        const int * borrow h = f;                       // expected-error {{conversion from type 'int *owned' to 'const int *borrow' is forbidden in the safe zone}}
+    }
+
+    int t_i = 1;
+    int * t_j = &t_i;
+    int t_k = 1;
+    int * t_l = &t_k;
+    safe {
+        // borrow point <-> raw point 
+        int * borrow a = (int * borrow)t_j;                  // expected-error {{conversion from type 'int *' to 'int *borrow' is forbidden in the safe zone}}
+        const int * borrow b = (const int * borrow)t_l;      // expected-error {{conversion from type 'int *' to 'const int *borrow' is forbidden in the safe zone}}
+        int *c = (int *)a;                                   // expected-error {{conversion from type 'int *borrow' to 'int *' is forbidden in the safe zone}}
+        int *d = (int *)b;                                   // expected-error {{conversion from type 'const int *borrow' to 'int *' is forbidden in the safe zone}}
+
+        int * borrow e = t_j;                                // expected-error {{conversion from type 'int *' to 'int *borrow' is forbidden in the safe zone}}
+        const int * borrow f = (const int * borrow)t_l;      // expected-error {{conversion from type 'int *' to 'const int *borrow' is forbidden in the safe zone}}
+        int * g = e;                                         // expected-error {{conversion from type 'int *borrow' to 'int *' is forbidden in the safe zone}}
+        int * h = f;                                         // expected-error {{conversion from type 'const int *borrow' to 'int *' is forbidden in the safe zone}}
+    }
+}
+
+struct s_a {
+    int a;
+};
+
+void test_4(void) {
+    struct s_a b = {1};
+    struct s_a *c = &b;
+    
+    struct s_a e = {1};   
+    struct s_a * owned f = (struct s_a * owned)&e;
+
+    struct s_a h = {1};
+    struct s_a * borrow i = &mut h;
+
+    struct s_a k = {1};
+    struct s_a * borrow l = &mut k;
+
+    safe {
+        int a = c->a;         // expected-error {{'->' operator used by raw pointer type is forbidden in the safe zone}}
+        int b = f->a;
+        int c = i->a;
+        int d = l->a;
+    }
+}
+
+safe int * borrow test_5(int * borrow a) {
+    return a;
+}
+
+safe const int * borrow test_6(const int * borrow a) {
+    return a;
+}

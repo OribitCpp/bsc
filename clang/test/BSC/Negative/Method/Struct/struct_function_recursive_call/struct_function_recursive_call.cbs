@@ -1,0 +1,11 @@
+// RUN: %clang_cc1 -verify %s
+
+typedef struct _queue {
+}queue;
+
+queue* queue::reverse() {
+    queue *q;
+    q->reverse(); // expected-error {{no instance member named 'reverse' in 'struct _queue'; did you mean to use '::' instead of '->'?}}
+                // expected-note@-1 {{found the following member function 'reverse' which doesn't have a 'this' parameter}}
+    return q;
+}

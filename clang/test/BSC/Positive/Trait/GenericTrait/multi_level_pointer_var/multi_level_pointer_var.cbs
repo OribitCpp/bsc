@@ -1,0 +1,95 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+trait F<T> {
+  T foo(This *this);
+};
+trait G {};
+
+struct S {};
+
+int struct S::foo(This *this) {
+  return 1;
+}
+
+impl trait F<int> for struct S;
+
+trait F<int> *f(trait F<int> *a) {
+    return a;
+}
+
+trait F<int> **f1(trait F<int> **a) {
+    return a;
+}
+
+trait F<int> ***f2(trait F<int> ***a) {
+    return a;
+}
+
+struct R {
+    trait F<int>* f1;
+    trait F<int>** f2;
+    trait F<int>*** f3;
+};
+
+int main() {
+    struct S s;
+  trait F<int> *p = &s;
+
+  // assign
+  trait F<int> **q = &p;
+  trait F<int> **q1 = (trait F<int> **)&p;
+  trait F<int> **qq = q;
+  trait F<int> **qq1 = (trait F<int> **)q;
+  trait F<int> **q2 = (void*)0;
+  trait F<int> **tmpq1 = &p, **tmpq2 = &p;
+  // ressign
+  qq = &p;
+  qq = (trait F<int> **)&p;
+  qq = q;
+  qq = (trait F<int> **)q;
+  q2 = (void*)0;
+  tmpq1 = &p, tmpq2 = &p;
+  // function call
+  (*q)->foo();
+  // compare with Null
+  if ((*q) == (void*)0 || (*q) != (void*)0) {}
+  // as parameter
+  p = f((*q));
+  p->foo();
+  (*f1(q))->foo();
+
+  // assign
+  trait F<int> ***t = &q;
+  trait F<int> ***t1 = (trait F<int> ***)&q;
+  trait F<int> ***tt = t;
+  trait F<int> ***tt1 = (trait F<int> ***)t;
+  trait F<int> ***t2 = (void*)0;
+  trait F<int> ***tmpt1 = &q, ***tmpt2 = &q;
+  // ressign
+  tt = &q;
+  tt = (trait F<int> ***)&q;
+  tt = t;
+  tt = (trait F<int> ***)t;
+  t2 = (void*)0;
+  tmpt1 = &q, tmpt2 = &q;
+  // function call
+  (**t)->foo();
+  // compare with Null
+  if ((**t) == (void*)0 || (**t) != (void*)0) {}
+  // as parameter
+  p = f((**t));
+  p->foo();
+  (**f2(t))->foo();
+
+  // trait in struct
+  struct R r1 = {.f1 = p, .f2 = q, .f3= t};
+  struct R r2 = { p, q, t };
+  struct R r3 = { .f1 = (trait F<int>*)p, .f2 = (trait F<int>**)q};
+  struct R r4 = { .f2 = (trait F<int>**)&p };
+  r1.f3 = &q;
+}

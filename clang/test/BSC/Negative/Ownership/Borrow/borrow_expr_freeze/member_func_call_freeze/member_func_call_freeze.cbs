@@ -1,0 +1,40 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+
+void use_mut(int *borrow p) {}
+void use_immut(const int *borrow p) {}
+void free(void *);
+int* malloc_int(int value);
+struct A {
+    int *p;
+};
+
+int * borrow struct A::get_p_mut(This *borrow this) {
+    return &mut *(this->p);
+}
+
+const int *borrow struct A::get_p_immut(This *borrow this) {
+    return &const *(this->p);
+}
+
+void struct A::free_p(This *borrow this) {
+    free((int *)this->p);
+}
+
+void test1() {
+    struct A a = { .p = malloc_int(5) };
+    *a.p = 6;
+    int *borrow q1 = a.get_p_mut(); // expected-note {{first mut borrow occurs here}}
+                                    // expected-note@-1 {{first mut borrow occurs here}}
+    const int *borrow q2 = a.get_p_immut(); // expected-error {{cannot borrow `a` as mutable more than once at a time}}
+    a.free_p(); // expected-error {{cannot borrow `a` as mutable more than once at a time}}
+    int tmp2 = *q2;
+    int tmp1 = *q1;
+}
+
+void test2() {
+    struct A a = { .p = malloc_int(5) };
+    *a.p = 6;
+    int *borrow q = a.get_p_mut(); // expected-note {{first mut borrow occurs here}}
+    a.free_p(); // expected-error {{cannot borrow `a` as mutable more than once at a time}}
+    int tmp = *q;
+}

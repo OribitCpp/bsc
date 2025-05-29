@@ -1,0 +1,7 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F {
+  int foo(This* this, int a) { // expected-error {{expected member name or ';' after declaration specifiers}} 
+    return 0;
+  }
+};

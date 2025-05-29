@@ -1,0 +1,64 @@
+// RUN: %clang_cc1 -verify %s
+
+#define NULL ((void *)0)
+
+typedef struct S {
+  int a;
+  int b;
+} S;
+
+typedef struct Foo {
+  int *borrow field;
+} Foo;
+
+void use_mutI(int *borrow);
+void use_constI(const int *borrow);
+void use_mutS(S *borrow);
+void use_constS(const S *borrow);
+T* owned safe_malloc<T>(T value);
+void free_owned<T>(T* owned p);
+void free(void *);
+
+void test1() {
+  S local = { .a = 1, .b = 2 };
+  int *borrow p = &mut local.a; // expected-note {{first mut borrow occurs here}}
+  S *borrow s = &mut local; // expected-error {{cannot borrow `local` as mutable more than once at a time}}
+  use_mutI(p);
+  use_mutS(s);
+}
+
+void test2() {
+  S local = { .a = 1, .b = 2 };
+  const int *borrow p = &const local.a; // expected-note {{immutable borrow occurs here}}
+  S *borrow s = &mut local; // expected-error {{cannot borrow `local` as mutable because it is also borrowed as immutable}}
+  use_constI(p);
+  use_mutS(s);
+}
+
+void test3() {
+  S local = { .a = 1, .b = 2 };
+  int *borrow p = &mut local.a; // expected-note {{mutable borrow occurs here}}
+  const S *borrow s = &const local; // expected-error {{cannot borrow `local` as immutable because it is also borrowed as mutable}}
+  use_mutI(p);
+  use_constS(s);
+}
+
+void test4(Foo a) {
+  int *borrow b = &mut *a.field; // expected-note {{`*a.field` is borrowed here}}
+                                 // expected-note@-1 {{first mut borrow occurs here}}
+  Foo temp = a; // expected-error {{cannot use `a` because it was mutably borrowed}}
+                // expected-error@-1 {{cannot borrow `*a.field` as mutable more than once at a time}}
+  use_mutI(b);
+}
+
+void test5(Foo a) {
+  int *borrow b = &mut *a.field;
+  a = (Foo) { .field = (int *borrow)NULL };
+  use_mutI(b);
+}
+
+void test6(Foo a) {
+  const int *borrow b = &const *a.field;
+  a = (Foo) { .field = (int *borrow)NULL };
+  use_constI(b);
+}

@@ -1,0 +1,45 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+struct MyStruct<T> {
+  T res;
+};
+
+int foo<T1, T2>(T1 a, T2 b) {
+  return 42;
+}
+
+int struct MyStruct<T>::foo() {
+  return foo<int, int>(1, 2);
+}
+
+int main() {
+  int res = struct MyStruct<int>::foo();
+  return res - 42;  
+}
+
+// CHECK:      struct MyStruct_int {
+// CHECK-NEXT:   int res;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: static int struct_MyStruct_int_foo(void);
+// CHECK-EMPTY:
+// CHECK-NEXT: static int foo_int_int(int a, int b);
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:   int res = struct_MyStruct_int_foo();
+// CHECK-NEXT:   return res - 42;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static int struct_MyStruct_int_foo(void) {
+// CHECK-NEXT:   return foo_int_int(1, 2);
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static int foo_int_int(int a, int b) {
+// CHECK-NEXT:   return 42;
+// CHECK-NEXT: }

@@ -1,0 +1,63 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -S -emit-llvm -o - %s | FileCheck %s --check-prefix=CHECK_MANGLE
+
+
+struct Block {
+  char* color;
+  int blood;
+};
+
+// CHECK_MANGLE-DAG: define {{.*}} @bar_int_int
+// CHECK_MANGLE-DAG: define {{.*}} @bar_double_float
+struct Block bar<T1, T2>(T1 a, T2 b) {
+  struct Block grass = {"green", 1};
+  struct Block obsidian = {.color="black", .blood=100};
+  struct Block oak;
+  oak.color = "yellow";
+  oak.blood = 15;
+  return grass;
+}
+
+
+int main() {
+  struct Block br1 = bar<int, int>(1, 2);
+  struct Block br2 = bar<double, float>(1.0, 2.0);
+  return 0;
+}
+
+
+// CHECK:struct Block {
+// CHECK-NEXT:  char* color;
+// CHECK-NEXT:  int blood;
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:static struct Block bar_int_int(int a, int b);
+// CHECK-EMPTY:
+// CHECK-NEXT:static struct Block bar_double_float(double a, float b);
+// CHECK-EMPTY:
+// CHECK-NEXT:int main(void) {
+// CHECK-NEXT:  struct Block br1 = bar_int_int(1, 2);
+// CHECK-NEXT:  struct Block br2 = bar_double_float(1., 2.);
+// CHECK-NEXT:  return 0;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static struct Block bar_int_int(int a, int b)   {
+// CHECK-NEXT:      struct Block grass = {"green", 1};
+// CHECK-NEXT:      struct Block obsidian = {.color = "black", .blood = 100};
+// CHECK-NEXT:      struct Block oak;
+// CHECK-NEXT:      oak.color = "yellow";
+// CHECK-NEXT:      oak.blood = 15;
+// CHECK-NEXT:      return grass;
+// CHECK-NEXT:  }
+// CHECK-EMPTY:
+// CHECK-NEXT:static struct Block bar_double_float(double a, float b)   {
+// CHECK-NEXT:      struct Block grass = {"green", 1};
+// CHECK-NEXT:      struct Block obsidian = {.color = "black", .blood = 100};
+// CHECK-NEXT:      struct Block oak;
+// CHECK-NEXT:      oak.color = "yellow";
+// CHECK-NEXT:      oak.blood = 15;
+// CHECK-NEXT:      return grass;
+// CHECK-NEXT:  }

@@ -1,0 +1,69 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+
+owned struct Raw<T> {
+  public:
+    T* ptr;
+    ~Raw(Raw<T> this) {}
+};
+
+owned struct Vec<T> {
+  public:
+    Raw<T> raw;
+    ~Vec(Vec<T> this) {}
+};
+
+owned struct String {
+  public:
+    Vec<char> buf;
+    ~String(String this) {}
+};
+
+String String::new();
+
+int main() {
+  String s = String::new();
+  return 0;
+}
+
+// CHECK: struct Raw_char {
+// CHECK-NEXT:     char *ptr;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct Vec_char {
+// CHECK-NEXT:      struct Raw_char raw;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct String {
+// CHECK-NEXT:      struct Vec_char buf;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_Raw_char_D( struct Raw_char this);
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_Vec_char_D( struct Vec_char this);
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_String_D( struct String this);
+// CHECK-EMPTY:
+// CHECK-NEXT:  struct String struct_String_new(void);
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:      struct String s = struct_String_new();
+// CHECK-NEXT:     _Bool s_is_moved = 0;
+// CHECK-NEXT:     if (!s_is_moved)
+// CHECK-NEXT:         struct_String_D(s);
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_Raw_char_D( struct Raw_char this) {
+// CHECK-NEXT:     _Bool this_is_moved = 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static void struct_Vec_char_D( struct Vec_char this) {
+// CHECK-NEXT:     _Bool this_is_moved = 0;
+// CHECK-NEXT:     struct_Raw_char_D(this.raw);
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_String_D( struct String this) {
+// CHECK-NEXT:     _Bool this_is_moved = 0;
+// CHECK-NEXT:     struct_Vec_char_D(this.buf);
+// CHECK-NEXT: }

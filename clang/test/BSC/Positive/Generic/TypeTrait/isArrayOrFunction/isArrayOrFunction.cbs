@@ -1,0 +1,43 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../lib/Headers/bsc_include/bsc_type_traits.hbs -o %T/bsc_type_traits.h
+// RUN: %clang -rewrite-bsc %S/TypeTrait.hbs -o %T/TypeTrait.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include "TypeTrait.hbs"
+
+int main()
+{
+    int int_array[1]; // Equivalent to int[0] in the diagram
+    char char_array[1]; // Equivalent to char in the diagram
+    float float_array[1]; // Equivalent to float in the diagram
+    int int_array_2d[1][1]; // Equivalent to int[1][1] in the diagram
+    int *int_pointer_array[2]; // Equivalent to int*[2] in the diagram
+
+    printf("%d\n",is_array<int[]>()); //1
+    printf("%d\n",is_array<char[]>()); //1
+    printf("%d\n",is_array<float[]>()); //1
+    printf("%d\n",is_array<int[1][1]>()); //1
+    printf("%d\n",is_array<int*[2]>()); //1
+    printf("%d\n",is_array<float>()); //0
+    struct S<int[]> s1;
+    s1.gmf_type_det(); //print "array"
+    gf_type_det<int[]>();  //print "array"
+    _Static_assert(is_array<int>() == 0, "fail");
+    _Static_assert(is_array<int[]>() == 1, "fail");
+
+    struct S<int ()> s2;
+    printf("%d\n",is_function<int ()>()); //1
+    printf("%d\n",is_function<int* ()>()); //1
+    printf("%d\n",is_function<int>()); //0
+    printf("%d\n",is_function<float (*) ()>()); //0
+    s2.gmf_type_det(); //print "function"
+    gf_type_det<int ()>();  //print "function"
+    _Static_assert(is_function<int>() == 0, "fail");
+    _Static_assert(is_function<int ()>() == 1, "fail");
+    return 0;
+    return 0;
+}

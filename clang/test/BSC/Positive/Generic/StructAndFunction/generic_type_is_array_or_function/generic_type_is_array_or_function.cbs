@@ -1,0 +1,74 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+struct S<T> {};
+void struct S<T>::foo(struct S<T>* this) {}
+void struct S<T>::foo_static() {}
+
+void bar<T>() {}
+
+int main() {
+    struct S<int[]> s1;
+    s1.foo();
+    struct S<int[]>::foo_static();
+    bar<int[]>();
+
+    struct S<int()> s2;
+    s2.foo();
+    struct S<int()>::foo_static();
+    bar<int()>();
+    return 0;
+}
+
+// CHECK:      struct S_intLBRB {
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct S_int_LPvoidRP {
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_S_intLBRB_foo(struct S_intLBRB *this);
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_S_intLBRB_foo_static(void);
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_S_int_LPvoidRP_foo(struct S_int_LPvoidRP *this);
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_S_int_LPvoidRP_foo_static(void);
+// CHECK-EMPTY:
+// CHECK-NEXT: void bar_intLBRB(void);
+// CHECK-EMPTY:
+// CHECK-NEXT: void bar_int_LPvoidRP(void);
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:   struct S_intLBRB s1;
+// CHECK-NEXT:   struct_S_intLBRB_foo(&s1);
+// CHECK-NEXT:   struct_S_intLBRB_foo_static();
+// CHECK-NEXT:   bar_intLBRB();
+// CHECK-NEXT:   struct S_int_LPvoidRP s2;
+// CHECK-NEXT:   struct_S_int_LPvoidRP_foo(&s2);
+// CHECK-NEXT:   struct_S_int_LPvoidRP_foo_static();
+// CHECK-NEXT:   bar_int_LPvoidRP();
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_S_intLBRB_foo(struct S_intLBRB *this) {
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_S_intLBRB_foo_static(void) {
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_S_int_LPvoidRP_foo(struct S_int_LPvoidRP *this) {
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_S_int_LPvoidRP_foo_static(void) {
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void bar_intLBRB(void) {
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void bar_int_LPvoidRP(void) {
+// CHECK-NEXT: }

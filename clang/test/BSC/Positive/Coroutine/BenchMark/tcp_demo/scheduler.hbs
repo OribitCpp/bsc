@@ -1,0 +1,49 @@
+#ifndef BISHENG_C_SCHEDULER_H
+#define BISHENG_C_SCHEDULER_H
+
+#include <stdatomic.h>
+#include "future.hbs"
+#include "queue.hbs"
+
+struct Void {};
+
+enum State {
+    READY,
+    PARKED,
+    RUNNING,
+    COMPLETED
+};
+
+struct Task {
+    trait Future<struct Void> *future;
+    atomic_int state;
+};
+
+struct ThreadContext {
+    unsigned int id;
+    pthread_t pid;
+    struct Queue<void *> localQueue;
+    void *runningTask;
+};
+
+struct Scheduler {
+    _Bool isInit;
+    struct Queue<void *> *globalQueue;
+    unsigned int threadCount;
+    struct ThreadContext **threads;
+};
+
+int taskCount();
+void taskAddOne();
+
+struct Scheduler *getScheduler();
+struct ThreadContext * getCurrentCtx();
+void struct Scheduler::init(unsigned int threadCount);
+void struct Scheduler::run();
+struct Task * struct Scheduler::spawn(trait Future<struct Void> * future);
+void struct Scheduler::destroy();
+
+// async void yield()
+trait Future<struct Void> *yield();
+
+#endif

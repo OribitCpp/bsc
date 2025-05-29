@@ -1,0 +1,66 @@
+// Test without serialization:
+// RUN: %clang_cc1 -triple x86_64-unknown-unknown -ast-dump %s \
+// RUN: | FileCheck --strict-whitespace %s
+//
+// Test with serialization:
+// RUN: %clang_cc1 -triple x86_64-unknown-unknown -emit-pch -o %t %s
+// RUN: %clang_cc1 -x bsc -triple x86_64-unknown-unknown -include-pch %t -ast-dump-all /dev/null \
+// RUN: | sed -e "s/ <undeserialized declarations>//" -e "s/ imported//" \
+// RUN: | FileCheck --strict-whitespace %s
+
+struct Foo {
+  int a;
+};
+// CHECK: RecordDecl 0x{{[^ ]*}} <{{.*}}:[[@LINE-3]]:1, line:[[@LINE-1]]:1> line:[[@LINE-3]]:8 struct Foo definition
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <line:[[@LINE-3]]:3, col:7> col:7 referenced a 'int'
+
+int struct Foo::getA(struct Foo* this) {
+  return this->a;
+}
+// CHECK: BSCMethodDecl 0x{{[^ ]*}} parent 0x{{[^ ]*}} <line:[[@LINE-3]]:1, line:[[@LINE-1]]:1> line:[[@LINE-3]]:17 used getA 'int (struct Foo *)'
+// CHECK-NEXT: ParmVarDecl 0x{{[^ ]*}} <col:22, col:34> col:34 used this 'struct Foo *'
+// CHECK-NEXT: CompoundStmt 0x{{[^ ]*}} <col:40, line:[[@LINE-3]]:1>
+// CHECK-NEXT: ReturnStmt 0x{{[^ ]*}} <line:[[@LINE-5]]:3, col:16>
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:10, col:16> 'int' <LValueToRValue>
+// CHECK-NEXT: MemberExpr 0x{{[^ ]*}} <col:10, col:16> 'int' lvalue ->a 0x{{[^ ]*}}
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:10> 'struct Foo *' <LValueToRValue>
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:10> 'struct Foo *' lvalue ParmVar 0x{{[^ ]*}} 'this' 'struct Foo *'
+
+int main() {
+  struct Foo foo = {.a = 1};
+  struct Foo* f = &foo;
+  foo.getA();
+  int x = f->getA();
+  return struct Foo::getA(&foo);
+}
+// CHECK: FunctionDecl 0x{{[^ ]*}} <line:[[@LINE-7]]:1, line:[[@LINE-1]]:1> line:[[@LINE-7]]:5 main 'int (void)'
+// CHECK-NEXT: CompoundStmt 0x{{[^ ]*}} <col:12, line:[[@LINE-2]]:1>
+// CHECK-NEXT: DeclStmt 0x{{[^ ]*}} <line:[[@LINE-8]]:3, col:28>
+// CHECK-NEXT: VarDecl 0x{{[^ ]*}} <col:3, col:27> col:14 used foo 'struct Foo':'struct Foo' cinit
+// CHECK-NEXT: InitListExpr 0x{{[^ ]*}} <col:20, col:27> 'struct Foo':'struct Foo'
+// CHECK-NEXT: IntegerLiteral 0x{{[^ ]*}} <col:26> 'int' 1
+// CHECK-NEXT: DeclStmt 0x{{[^ ]*}} <line:[[@LINE-11]]:3, col:23>
+// CHECK-NEXT: VarDecl 0x{{[^ ]*}} <col:3, col:20> col:15 used f 'struct Foo *' cinit
+// CHECK-NEXT: UnaryOperator 0x{{[^ ]*}} <col:19, col:20> 'struct Foo *' prefix '&' cannot overflow
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:20> 'struct Foo':'struct Foo' lvalue Var 0x{{[^ ]*}} 'foo' 'struct Foo':'struct Foo'
+// CHECK-NEXT: CallExpr 0x{{[^ ]*}} <line:[[@LINE-14]]:3, col:12> 'int'
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:3, col:7> 'int (*)(struct Foo *)' <FunctionToPointerDecay>
+// CHECK-NEXT: MemberExpr 0x{{[^ ]*}} <col:3, col:7> 'int (struct Foo *)' lvalue .getA 0x{{[^ ]*}}
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:3> 'struct Foo':'struct Foo' lvalue Var 0x{{[^ ]*}} 'foo' 'struct Foo':'struct Foo'
+// CHECK-NEXT: UnaryOperator 0x{{[^ ]*}} <<invalid sloc>, col:3> 'struct Foo *' prefix '&' cannot overflow
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:3> 'struct Foo':'struct Foo' lvalue Var 0x{{[^ ]*}} 'foo' 'struct Foo':'struct Foo'
+// CHECK-NEXT: DeclStmt 0x{{[^ ]*}} <line:[[@LINE-19]]:3, col:20>
+// CHECK-NEXT: VarDecl 0x{{[^ ]*}} <col:3, col:19> col:7 x 'int' cinit
+// CHECK-NEXT: CallExpr 0x{{[^ ]*}} <col:11, col:19> 'int'
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:11, col:14> 'int (*)(struct Foo *)' <FunctionToPointerDecay>
+// CHECK-NEXT: MemberExpr 0x{{[^ ]*}} <col:11, col:14> 'int (struct Foo *)' lvalue ->getA 0x{{[^ ]*}}
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:11> 'struct Foo *' <LValueToRValue>
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:11> 'struct Foo *' lvalue Var 0x{{[^ ]*}} 'f' 'struct Foo *'
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:11> 'struct Foo *' <LValueToRValue>
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:11> 'struct Foo *' lvalue Var 0x{{[^ ]*}} 'f' 'struct Foo *'
+// CHECK-NEXT: ReturnStmt 0x{{[^ ]*}} <line:[[@LINE-27]]:3, col:31>
+// CHECK-NEXT: CallExpr 0x{{[^ ]*}} <col:22, col:31> 'int'
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:22> 'int (*)(struct Foo *)' <FunctionToPointerDecay>
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:22> 'int (struct Foo *)' BSCMethod 0x{{[^ ]*}} 'getA' 'int (struct Foo *)'
+// CHECK-NEXT: UnaryOperator 0x{{[^ ]*}} <col:27, col:28> 'struct Foo *' prefix '&' cannot overflow
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:28> 'struct Foo':'struct Foo' lvalue Var 0x{{[^ ]*}} 'foo' 'struct Foo':'struct Foo'

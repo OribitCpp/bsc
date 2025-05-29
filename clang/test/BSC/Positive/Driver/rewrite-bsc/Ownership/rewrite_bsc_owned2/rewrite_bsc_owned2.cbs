@@ -1,0 +1,37 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+typedef int* owned myIntPtr;
+
+int* owned test2() {
+    int x = 10;
+    int* p = &x;
+    myIntPtr p1 = (myIntPtr)p;
+    return p1;
+}
+
+typedef int (*FTP)(int*, int*);
+typedef int (*FTPO)(int* owned, int*);
+
+int main() {
+    return 0;
+}
+
+//CHECK:typedef int * myIntPtr;
+// CHECK-EMPTY:
+// CHECK-NEXT: typedef int (*FTP)(int *, int *);
+// CHECK-EMPTY:
+// CHECK-NEXT: typedef int (*FTPO)(int *, int *);
+// CHECK-EMPTY:
+// CHECK-NEXT: int * test2(void) {
+// CHECK-NEXT:     int x = 10;
+// CHECK-NEXT:     int *p = &x;
+// CHECK-NEXT:     myIntPtr p1 = (myIntPtr)p;
+// CHECK-NEXT:     return p1;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int main() {
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }

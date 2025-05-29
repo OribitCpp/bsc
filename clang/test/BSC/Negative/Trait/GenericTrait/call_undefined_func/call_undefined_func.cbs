@@ -1,0 +1,18 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F<T> {
+  int foo(This* this);
+};
+
+int int::foo(int* this) {
+  return 0;
+}
+
+impl trait F<int> for int;
+
+int main() {
+  int a = 1;
+  trait F<int>* f = &a;
+  f->get(); // expected-error {{no member named 'get' in 'struct __Trait_F_Vtable<int>'}}
+  return 0;
+}

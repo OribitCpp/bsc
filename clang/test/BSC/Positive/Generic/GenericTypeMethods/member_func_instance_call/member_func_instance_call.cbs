@@ -1,0 +1,65 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+struct MyStruct<T>;
+struct MyStruct<T>;
+struct MyStruct<T> {
+  T res;
+};
+
+union MyUnion<T> {
+  T res;
+};
+
+T struct MyStruct<T>::foo(struct MyStruct<T> *this, T a) {
+  this->res = this->res + a;
+  return this->res;
+}
+
+T union MyUnion<T>::foo(union MyUnion<T> *this, T a) {
+  this->res = this->res + a;
+  return this->res;
+}
+
+int main() {
+  struct MyStruct<int> s = {.res = 1};
+  union MyUnion<int> u = {.res = 5};
+  int res1 = s.foo(10);
+  int res2 = u.foo(6);
+  return res1 - res2;
+}
+
+// CHECK:      struct MyStruct_int {
+// CHECK-NEXT:   int res;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: union MyUnion_int {
+// CHECK-NEXT:   int res;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: static int struct_MyStruct_int_foo(struct MyStruct_int *this, int a);
+// CHECK-EMPTY:
+// CHECK-NEXT: static int union_MyUnion_int_foo(union MyUnion_int *this, int a);
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:   struct MyStruct_int s = {.res = 1};
+// CHECK-NEXT:   union MyUnion_int u = {.res = 5};
+// CHECK-NEXT:   int res1 = struct_MyStruct_int_foo(&s, 10);
+// CHECK-NEXT:   int res2 = union_MyUnion_int_foo(&u, 6);
+// CHECK-NEXT:   return res1 - res2;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static int struct_MyStruct_int_foo(struct MyStruct_int *this, int a) {
+// CHECK-NEXT:   this->res = this->res + a;
+// CHECK-NEXT:   return this->res;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static int union_MyUnion_int_foo(union MyUnion_int *this, int a) {
+// CHECK-NEXT:   this->res = this->res + a;
+// CHECK-NEXT:   return this->res;
+// CHECK-NEXT: }

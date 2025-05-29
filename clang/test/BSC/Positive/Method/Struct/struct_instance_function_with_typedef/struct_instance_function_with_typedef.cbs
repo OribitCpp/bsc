@@ -1,0 +1,42 @@
+// RUN: %clang_cc1 -verify %s
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang_cc1 %t-rw.c -o %t-rw.output
+// expected-no-diagnostics
+
+typedef struct Foo {
+  int a;
+  int b;
+}Foo;
+
+int Foo::getB(Foo* this) { 
+  return this->b;
+}
+
+int Foo::getAPlusB(struct Foo* this) { 
+  return this->a + this->b;
+}
+
+int struct Foo::getA(struct Foo* this) {
+  return this->a;
+}
+
+// CHECK: int Foo_getB(Foo *this) {
+// CHECK-NEXT:   return this->b;
+// CHECK-NEXT: }
+
+// CHECK: int Foo_getAPlusB(struct Foo *this) {
+// CHECK-NEXT:   return this->a + this->b;
+// CHECK-NEXT: }
+
+// CHECK: int struct_Foo_getA(struct Foo *this) {
+// CHECK-NEXT:   return this->a;
+// CHECK-NEXT: }
+
+int main() {
+  Foo obj;
+  obj.getA();
+  obj.getB();
+  obj.getAPlusB();
+  return 0;
+}

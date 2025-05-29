@@ -1,0 +1,35 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// expected-no-diagnostics
+
+struct S {
+    int a;
+};
+safe void test1(void) {
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Eassign-nullable"
+    struct S *borrow _Nullable p = nullptr;
+    if (p != nullptr) {
+        p->a = 10;
+    } else {
+        p->a = 20;          // cannot access member through nullable pointer
+    }
+    p->a = 30;              // cannot access member through nullable pointer
+    #pragma GCC diagnostic pop
+}
+
+// CHECK:      struct S;
+// CHECK-NEXT: struct S {
+// CHECK-NEXT:     int a;
+// CHECK-NEXT: };
+// CHECK-EMPTY: 
+// CHECK:      void test1(void) {
+// CHECK-NEXT:     struct S * p = 0;
+// CHECK-NEXT:     if (p != 0) {
+// CHECK-NEXT:         p->a = 10;
+// CHECK-NEXT:     } else {
+// CHECK-NEXT:         p->a = 20;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     p->a = 30;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 

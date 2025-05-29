@@ -1,0 +1,17 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include<stdbool.h>
+
+int m(bool i) {
+    return 0;
+}
+
+int main() {
+    return 0;
+}
+

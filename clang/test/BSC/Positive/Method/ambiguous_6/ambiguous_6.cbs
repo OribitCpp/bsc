@@ -1,0 +1,83 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang_cc1 %t-rw.c -o %t-rw.output
+// expected-no-diagnostics
+
+struct F {};
+
+typedef struct F GG;
+
+GG long long::f1() {
+    struct F g;
+    return g;
+}
+
+struct F long long::f2() {
+    struct F g;
+    return g;
+}
+
+_Bool long long::f3() {
+    return 0;
+}
+
+_Bool unsigned long::f4() {
+    return 0;
+}
+
+double unsigned int::f5() {
+    return 0;
+}
+
+char signed const int::f6() {
+    return 0;
+}
+
+GG GG::f7() {
+    struct F g;
+    return g;
+}
+
+char signed const GG::f8() {
+    return 0;
+}
+
+int main() {
+    return 0;
+}
+
+// CHECK: GG long_long_f1(void) {
+// CHECK-NEXT:   struct F g;
+// CHECK-NEXT:   return g;
+// CHECK-NEXT: }
+
+// CHECK: struct F long_long_f2(void) {
+// CHECK-NEXT:   struct F g;
+// CHECK-NEXT:   return g;
+// CHECK-NEXT: }
+
+// CHECK: _Bool long_long_f3(void) {
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+
+// CHECK: _Bool unsigned_long_f4(void) {
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+
+// CHECK: double unsigned_int_f5(void) {
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+
+// CHECK: const signed char int_f6(void) {
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+
+// CHECK: GG GG_f7(void) {
+// CHECK-NEXT:   struct F g;
+// CHECK-NEXT:   return g;
+// CHECK-NEXT: }
+
+// CHECK: const signed char GG_f8(void) {
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }

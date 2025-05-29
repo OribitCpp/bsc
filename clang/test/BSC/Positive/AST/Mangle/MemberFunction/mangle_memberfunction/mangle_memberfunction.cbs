@@ -1,0 +1,31 @@
+// RUN: %clang_cc1 -emit-llvm -o - %s | FileCheck %s
+// RUN: %clang %s -g -o %test.output
+// RUN: %test.output
+// expected-no-diagnostics
+struct Person{
+  char name[32];
+  int age;
+};
+
+// CHECK: define {{.*}} @struct_Person_getName
+char* struct Person::getName(struct Person* this) {
+  return this->name;
+}
+
+// CHECK: define {{.*}} @struct_Person_getAge
+int struct Person::getAge(struct Person* this) {
+  return this->age;
+}
+
+// CHECK: define {{.*}} @int_increase
+void int::increase(int *this) {
+  *this += 1;
+}
+
+int main() {
+  struct Person p = {"John", 30};
+  char *name = p.getName();
+  int age = p.getAge();
+  age.increase();
+  return 0;
+}

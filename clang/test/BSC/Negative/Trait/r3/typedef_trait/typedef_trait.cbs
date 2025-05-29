@@ -1,0 +1,19 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+typedef trait F {
+  int foo(This* this, int a);
+}G;
+
+typedef trait G { // expected-warning {{typedef requires a name}}
+  int foo(This* this);
+};
+
+struct S{
+  int x;
+};
+
+int struct S::foo(struct S* this, int a) {
+  return this->x + a;
+}
+
+impl G for struct S;

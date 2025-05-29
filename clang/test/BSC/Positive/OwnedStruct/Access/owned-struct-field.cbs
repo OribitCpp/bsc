@@ -1,0 +1,49 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+owned struct C {
+    public:
+    int f(C* this) { return this->a; } 
+    int a;
+    int g(C* this) { return this->f(); }
+};
+
+int main() {
+   C c = {3};
+   int ret = c.f() -3;
+   return ret;
+}
+
+// CHECK: struct C {
+// CHECK-NEXT:     int a;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: int struct_C_f( struct C *this);
+// CHECK-EMPTY:
+// CHECK-NEXT: int struct_C_g( struct C *this);
+// CHECK-EMPTY:
+// CHECK-NEXT: void struct_C_D( struct C this);
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:      struct C c = {3};
+// CHECK-NEXT:     _Bool c_is_moved = 0;
+// CHECK-NEXT:     int ret = struct_C_f(&c) - 3;
+// CHECK-NEXT:    if (!c_is_moved)
+// CHECK-NEXT:         struct_C_D(c);
+// CHECK-NEXT:     return ret;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int struct_C_f( struct C *this) {
+// CHECK-NEXT:     return this->a;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT:int struct_C_g( struct C *this) {
+// CHECK-NEXT:    return struct_C_f(this);
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:void struct_C_D( struct C this) {
+// CHECK-NEXT:}

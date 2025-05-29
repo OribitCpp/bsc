@@ -1,0 +1,41 @@
+// RUN: %clang_cc1  -verify %s
+// expected-no-diagnostics
+
+int 
+foo1<T>() {
+    return 0;
+}
+ 
+int foo2
+<T>() {
+    return 0;
+}
+
+int foo3<T
+>() {
+    return 0;
+}
+
+struct S<T>{};
+
+struct S<T>
+foo4<T>() {
+    struct S<T> s;
+    return s;
+}
+ 
+struct S<T> foo5
+<T>() {
+    struct S<T> s;
+    return s;
+} 
+
+struct S<T> foo6<T
+>() {
+    struct S<T> s;
+    return s;
+} 
+
+int main() {
+    return 0;
+}

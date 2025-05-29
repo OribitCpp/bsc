@@ -1,0 +1,109 @@
+// RUN: %clang_cc1 -verify %s
+
+owned struct Bar {
+public:
+  int a;
+};
+
+
+T* owned safe_malloc<T>(T value);
+void free_owned<T>(T* owned p);
+
+int Bar::getA(This this) {
+  return this.a; // expected-error {{memory leak because temporary variable 'this' is owned or indirect owned type, please fix it}}
+}
+
+int Bar::getA_2(const This this) {
+  return this.a; // expected-error {{memory leak because temporary variable 'this' is owned or indirect owned type, please fix it}}
+}
+
+int Bar::getB(This* this) {
+  return this->a;
+}
+
+int Bar::getB_2(const This* const this) {
+  return this->a;
+}
+
+int Bar::getC(This* borrow this) {
+  return this->a;
+}
+
+int Bar::getC_2(const This* borrow this) {
+  return this->a;
+}
+
+void Bar::getD(This* owned this) {
+  free_owned<Bar>(this);
+}
+
+void test_This_actual_param() {
+  Bar bar = {.a = 1};
+  const Bar bar2 = {.a = 2};
+  int a = bar.getA();  // expect ok, run ok
+  int a2 = bar2.getA_2();
+  int a3 = bar2.getA(); // expected-error {{incompatible conversion from const type 'const owned struct Bar' to non-const type 'owned struct Bar' in member function call}}
+  int a4 = bar2.getA_2();
+  int b = bar.getB();  // expect ok, run ok
+  int b2 = bar.getB_2(); //expect ok, run ok
+  int b3 = bar2.getB(); // expected-error {{incompatible conversion from const type 'const owned struct Bar' to non-const type 'owned struct Bar *' in member function call}}
+  int b4 = bar2.getB_2();
+  int c = bar.getC();  // expect ok, run ok
+  int c2 = bar.getC_2();  // expect ok, run ok
+  bar.getD();  // expected-error {{incompatible conversion from non owned type 'owned struct Bar' to owned type 'owned struct Bar *owned' in member function call}}
+}
+
+void test_This_pointer_actual_param() {
+  Bar bar = {.a = 1};
+  Bar * bar_p = &bar;
+  int a = bar_p->getA();  // expected-error {{incompatible conversion from pointer type 'owned struct Bar *' to non-pointer type 'owned struct Bar' in member function call}}
+  int b = bar_p->getB();  // expect ok, run ok
+  int b2 = bar_p->getB_2(); //expect ok, run ok
+  int c = bar_p->getC();  // expect ok, run ok
+  int c2 = bar_p->getC_2();  // expect ok, run ok
+  bar_p->getD();  // expected-error {{incompatible conversion from non owned type 'owned struct Bar *' to owned type 'owned struct Bar *owned' in member function call}}
+}
+
+void test_const_This_pointer_actual_param() {
+  Bar bar = {.a = 1};
+  const Bar * c_bar_p = &bar;
+  int a = c_bar_p->getA();  // expected-error {{incompatible conversion from pointer type 'const owned struct Bar *' to non-pointer type 'owned struct Bar' in member function call}}
+  int b = c_bar_p->getB();  // expected-error {{incompatible conversion from const type 'const owned struct Bar *' to non-const type 'owned struct Bar *' in member function call}}
+  int b2 = c_bar_p->getB_2(); //expect ok, run ok
+  int c = c_bar_p->getC();  // expected-error {{incompatible conversion from const type 'const owned struct Bar *' to non-const type 'owned struct Bar *borrow' in member function call}}
+  int c2 = c_bar_p->getC_2();  // expect ok, run ok
+  c_bar_p->getD();  // expected-error {{incompatible conversion from non owned type 'const owned struct Bar *' to owned type 'owned struct Bar *owned' in member function call}}
+}
+
+void test_This_pointer_borrow_actual_param(void) {
+  Bar bar = {.a = 1};
+  Bar *borrow bar_mut = &mut bar;
+  int a = bar_mut->getA();  // expected-error {{incompatible conversion from pointer type 'owned struct Bar *borrow' to non-pointer type 'owned struct Bar' in member function call}}
+  int b = bar_mut->getB();  // expect ok, run ok
+  int b2 = bar_mut->getB_2(); //expect ok, run ok
+  int c = bar_mut->getC();  // expect ok, run ok
+  int c2 = bar_mut->getC_2();  // expect ok, run ok
+  bar_mut->getD();  // expected-error {{incompatible conversion from non owned type 'owned struct Bar *borrow' to owned type 'owned struct Bar *owned' in member function call}}
+}
+
+void test_const_This_pointer_borrow_actual_param(void) {
+  Bar bar = {.a = 1};
+  const Bar *borrow c_bar_mut = &const bar;
+  int a = c_bar_mut->getA();  // expected-error {{incompatible conversion from pointer type 'const owned struct Bar *borrow' to non-pointer type 'owned struct Bar' in member function call}}
+  int b = c_bar_mut->getB();  // expected-error {{incompatible conversion from const type 'const owned struct Bar *borrow' to non-const type 'owned struct Bar *' in member function call}}
+  int b2 = c_bar_mut->getB_2(); //expect ok, run ok
+  int c = c_bar_mut->getC();  // expected-error {{incompatible conversion from const type 'const owned struct Bar *borrow' to non-const type 'owned struct Bar *borrow' in member function call}}
+  int c2 = c_bar_mut->getC_2();  // expect ok, run ok
+  c_bar_mut->getD();  // expected-error {{incompatible conversion from non owned type 'const owned struct Bar *borrow' to owned type 'owned struct Bar *owned' in member function call}}
+}
+
+void test_This_pointer_owned_actual_param(void) {
+  Bar bar = {.a = 1};
+  Bar * owned bar_owned = safe_malloc<Bar>(bar);
+  int a = bar_owned->getA();  // expected-error {{incompatible conversion from pointer type 'owned struct Bar *owned' to non-pointer type 'owned struct Bar' in member function call}}
+  int b = bar_owned->getB();  // expect ok, run ok
+  int b2 = bar_owned->getB_2(); //expect ok, run ok
+  int c = bar_owned->getC();  // expect ok, run ok
+  int c2 = bar_owned->getC_2();  // expect ok, run ok
+  bar_owned->getD();  // expect ok, run ok
+}

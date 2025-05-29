@@ -1,0 +1,16 @@
+// RUN: %clang_cc1 -verify %s
+
+T func<T>() {
+  T a = 10;
+  T new_value = 20;
+  T old_value = atomic_exchange(&a, new_value); // expected-error{{use of undeclared identifier 'atomic_exchange'}}
+  return a;
+}
+
+int main() {
+  int counter = func<int>();
+  if (counter == 20) {
+    return 0;
+  }
+  return 1;
+}

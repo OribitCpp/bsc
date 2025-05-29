@@ -1,0 +1,97 @@
+// RUN: %clang -rewrite-bsc %S/rewrite_bsc_generic_header_2.hbs -o %T/rewrite_bsc_generic_header_2.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+#include <stdio.h>
+#    include <stdlib.h>
+#include <memory.h>
+#include "rewrite_bsc_generic_header_2.hbs"
+
+void task_add_one() {
+  atomic_int task_count = 1;
+  atomic_fetch_add(&task_count, 1);
+}
+
+int main() {
+  struct S<int, char> a = b;
+  newS<int, char>(d);
+  foo1();
+  foo2(d, a);
+  struct B b;
+  return 0;
+}
+
+// CHECK:      #include <memory.h>
+// CHECK-NEXT: #include <stdatomic.h>
+// CHECK-NEXT: #include <stdbool.h>
+// CHECK-NEXT: #include <stdio.h>
+// CHECK-NEXT: #include <stdlib.h>
+// CHECK-EMPTY:
+// CHECK-EMPTY:
+// CHECK-NEXT: struct S_int_char;
+// CHECK-NEXT: struct G_struct_S_int_char;
+// CHECK-NEXT: struct G_int;
+// CHECK-NEXT: struct A;
+// CHECK-NEXT: struct B;
+// CHECK-NEXT: typedef int (*myFunc)(struct B *);
+// CHECK-EMPTY:
+// CHECK-NEXT: typedef struct A MyStruct;
+// CHECK-EMPTY:
+// CHECK-NEXT: struct S_int_char {
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct G_struct_S_int_char {
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct G_int {
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct B {
+// CHECK-NEXT:   struct A **a;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct A {
+// CHECK-NEXT:   struct G_int g;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: static struct S_int_char *newS_int_char(int a);
+// CHECK-EMPTY:
+// CHECK-NEXT: struct S_int_char b;
+// CHECK-EMPTY:
+// CHECK-NEXT: struct G_struct_S_int_char c;
+// CHECK-EMPTY:
+// CHECK-NEXT: int d = 1;
+// CHECK-EMPTY:
+// CHECK-NEXT: struct S_int_char foo1(void) {
+// CHECK-NEXT:   struct S_int_char r;
+// CHECK-NEXT:   return r;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void foo2(int a, struct S_int_char s) {
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void foo3() {}
+// CHECK-EMPTY:
+// CHECK-NEXT: void int_foo(int *this, struct A *a);
+// CHECK-EMPTY:
+// CHECK-NEXT: void task_add_one() {
+// CHECK-NEXT:   atomic_int task_count = 1;
+// CHECK-NEXT:   atomic_fetch_add(&task_count, 1);
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:   struct S_int_char a = b;
+// CHECK-NEXT:   newS_int_char(d);
+// CHECK-NEXT:   foo1();
+// CHECK-NEXT:   foo2(d, a);
+// CHECK-NEXT:   struct B b;
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static struct S_int_char *newS_int_char(int a) {
+// CHECK-NEXT:   int b = sizeof(struct S_int_char);
+// CHECK-NEXT:   struct S_int_char *r;
+// CHECK-NEXT:   return r;
+// CHECK-NEXT: }

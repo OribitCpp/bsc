@@ -1,0 +1,14 @@
+// RUN: %clang_cc1 -verify %s
+owned struct A {    
+  ~A(A this); // expected-error {{destructor must have a function body}}
+};
+
+owned struct B {    
+ ~B(B this) {}
+
+};
+
+owned struct C<T> {    
+ ~C(C<T> this); // expected-error {{destructor must have a function body}}
+
+};

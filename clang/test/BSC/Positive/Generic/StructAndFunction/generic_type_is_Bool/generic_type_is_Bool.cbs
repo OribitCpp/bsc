@@ -1,0 +1,54 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include<stdbool.h>
+T bar<T>(T a) {
+    return a;
+}
+
+struct S<T>{
+    T c;
+};
+struct S<T> struct S<T>::foo(This* this, T a) {
+    return *this;
+}
+struct S<T> struct S<T>::foo_static(T a) {
+    struct S<_Bool> p;
+    p.c = a;
+    return p;
+}
+
+trait F<T> {
+    struct S<T> foo(This* this, T a);
+};
+struct S<_Bool> _Bool::foo(_Bool* this, _Bool a) {
+    struct S<_Bool> p;
+    p.c = a;
+    return p;
+}
+impl trait F<_Bool> for _Bool;
+
+int main() { 
+  _Bool a = 1;
+
+  bar<_Bool>(a);  
+  bar<bool>(a);
+  _Bool b = bar<_Bool>(a);
+  bool c = bar<bool>(a);
+
+  struct S<_Bool> s1 = {.c = 1};
+  s1.foo(a);
+  struct S<bool> s2 = {.c = 1};
+  s2.foo(a);
+  struct S<_Bool>::foo_static(a);
+
+  trait F<_Bool> *f1 = &a;
+  f1->foo(a);
+  trait F<bool> *f2 = &a;
+  f2->foo(a);
+  return 0;
+}

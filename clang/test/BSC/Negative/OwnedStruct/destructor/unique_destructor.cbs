@@ -1,0 +1,19 @@
+// RUN: %clang_cc1 -verify %s
+
+owned struct A {    
+  ~A(A this) { // expected-note {{previous definition is here}}
+  }
+  ~A(A this) { // expected-error {{destructor cannot be redeclared}}
+  }
+};
+
+owned struct B<T> {    
+  ~B(B<T> this) { // expected-note {{previous definition is here}}
+  }
+  ~B(B<T> this) { // expected-error {{destructor cannot be redeclared}}
+  }
+};
+
+int main() {
+    return 0;
+}

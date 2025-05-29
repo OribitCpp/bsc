@@ -1,0 +1,160 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include<stdio.h>
+#include<malloc.h>
+
+struct Matrix<T> {
+    int totalDim;
+    int* dims;
+    int totalData;
+    T* data;
+};
+
+// initDims
+void struct Matrix<T>::setDims(struct Matrix<T>* this, int* initDims, int dimNum) {
+    this->totalDim = dimNum;
+    this->dims = (int*)malloc(sizeof(int) * dimNum);
+    for (int i = 0; i < dimNum; i++) {
+        this->dims[i] = initDims[i];
+    }
+}
+
+// initData
+void struct Matrix<T>::setData(struct Matrix<T>* this, int* initData, int dataNum) {
+    this->totalData = dataNum;
+    this->data = (T*)malloc(sizeof(T) * dataNum);
+    for (int i = 0; i < dataNum; i++) {
+        this->data[i] = initData[i];
+    }
+}
+
+// add
+struct Matrix<T> struct Matrix<T>::add(struct Matrix<T>* this, struct Matrix<T>* matrix2) {
+    if (this->totalData != matrix2->totalData || this->totalDim != matrix2->totalDim) {
+        printf("The size of matrix does not match.");
+        return *this;
+    } else {
+        for (int i = 0; i < this->totalDim; i++) {
+            if (this->dims[i] != matrix2->dims[i]) {
+                printf("The size of matrix does not match.");
+                return *this;
+            }
+        }
+    }
+    struct Matrix<T> newMatrix;
+    newMatrix.setDims(this->dims, this->totalDim);
+    T newData[this->totalData];
+    for (int i = 0; i < this->totalData; i++) {
+        newData[i] = this->data[i] + matrix2->data[i];
+    }
+    newMatrix.setData(newData, this->totalData);
+    return newMatrix;
+}
+
+// minus
+struct Matrix<T> struct Matrix<T>::minus(struct Matrix<T>* this, struct Matrix<T>* matrix2) {
+    if (this->totalData != matrix2->totalData || this->totalDim != matrix2->totalDim) {
+        printf("The size of matrix does not match.");
+        return *this;
+    } else {
+        for (int i = 0; i < this->totalDim; i++) {
+            if (this->dims[i] != matrix2->dims[i]) {
+                printf("The size of matrix does not match.");
+                return *this;
+            }
+        }
+    }
+    struct Matrix<T> newMatrix;
+    newMatrix.setDims(this->dims, this->totalDim);
+    T newData[this->totalData];
+    for (int i = 0; i < this->totalData; i++) {
+        newData[i] = this->data[i] - matrix2->data[i];
+    }
+    newMatrix.setData(newData, this->totalData);
+    return newMatrix;
+}
+
+// print a matrix
+// currently only an integer matrix can be printed.
+// other data types are not supported.  
+void print_matrix(int arr[], int dims[], int totalDim, int currDim, int* start) {
+    int row = dims[0];
+    for (int k = 0; k < row; k++) {
+        if (currDim == 2) {
+            printf("%*s[", totalDim - currDim, "");
+            int col = dims[currDim - 1];
+            for (int j = 0; j < col; j++) {
+                printf("%d ", arr[*start + k * col + j]);
+            }
+            printf("]\n");
+        } else {
+            printf("%*s[\n", totalDim - currDim, "");
+            print_matrix(arr, dims + 1, totalDim, currDim - 1, start);
+            printf("%*s]\n", totalDim - currDim, "");
+        }
+    }
+    if (currDim == 2) {
+        *start = *start + dims[0] * dims[1];
+    }
+}
+
+// dump
+void struct Matrix<T>::dump(struct Matrix<T>* this) {
+    int dims[this->totalDim];
+    for (int i = 0; i < this->totalDim; i++) {
+        dims[i] = this->dims[i];
+    }
+    T data[this->totalData];
+    for (int i = 0; i < this->totalData; i++) {
+        data[i] = this->data[i];
+    }
+    int start = 0;
+    print_matrix(data, dims, this->totalDim, this->totalDim, &start);
+}
+
+//free memory 
+void struct Matrix<T>::release(struct Matrix<T>* this) {
+    free(this->dims);
+    free(this->data);
+}
+
+int main() {
+    struct Matrix<int> m1;
+    int initDims1[4] = {3, 2, 2, 2};
+    m1.setDims(initDims1, 4);
+    int initData1[24];
+    for (int i = 0; i < 24; i++) {
+        initData1[i] = i + 1;
+    }
+    m1.setData(initData1, 24);
+    m1.dump();
+    printf("-----------\n");
+
+    struct Matrix<int> m2;
+    struct Matrix<int> m3;
+    int initDims[3] = {2, 2, 3};
+    m2.setDims(initDims, 3);
+    m3.setDims(initDims, 3);
+    int initData2[12] = {4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3};
+    m2.setData(initData2, 12);
+    int initData3[12] = {6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5};
+    m3.setData(initData3, 12);
+
+    struct Matrix<int> m4 = m2.add(&m3);
+    struct Matrix<int> m5 = m2.minus(&m3);
+    m4.dump();
+    printf("-----------\n");
+    m5.dump();
+    printf("-----------\n");
+    m1.release();
+    m2.release();
+    m3.release();
+    m4.release();
+    m5.release();
+    return 0;
+}

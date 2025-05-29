@@ -1,0 +1,40 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include <stdio.h>
+struct S1<T, int N> {
+    T a[N];
+};
+void struct S1<T, int N>::init(This* this, int b){
+    for (int i = 0; i < N; i++) this->a[i] = i + b; 
+}
+void struct S1<T, int N>::dump(struct S1<T, int N>* this){
+    for (int i = 0; i < N; i++) printf("%d\n", this->a[i]); 
+}
+
+typedef unsigned long long int MyInt;
+struct S2<unsigned long long int N, T> {
+    T a[N];
+};
+void struct S2<unsigned long long int N, T>::init(This* this, int b){
+    for (int i = 0; i < N; i++) this->a[i] = i + b; 
+}
+void struct S2<MyInt N, T>::dump(struct S2<MyInt N, T>* this){
+    for (int i = 0; i < N; i++) printf("%d\n", this->a[i]); 
+}
+
+int main() {
+    struct S1<int, 5> s1;
+    s1.init(2);
+    s1.dump();   //print 2, 3, 4, 5, 6
+
+    struct S2<5, int> s2;
+    s2.init(4);
+    s2.dump();   //print 4, 5, 6, 7 ,8
+    
+    return 0;
+}

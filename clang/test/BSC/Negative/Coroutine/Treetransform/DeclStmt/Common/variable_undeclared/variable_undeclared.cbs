@@ -1,0 +1,15 @@
+// RUN: %clang_cc1 -internal-isystem %S/../../../../../../../../lib/Headers/bsc_include -verify %s
+
+#include "../../../../async-func-read-opposite.hbs"
+
+async int f(int start) { 
+  int result = await read(r1); // #1
+  return result;
+}
+
+// expected-error@#1 {{use of undeclared identifier 'r1'}}
+// expected-error@#1 {{initializing 'int' with an expression of incompatible type '<dependent type>'}}  
+
+int main() {
+  return 0;
+}

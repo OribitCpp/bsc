@@ -1,0 +1,12 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F {
+  int foo(This* this);
+};
+
+impl trait F for trait F;  // expected-error {{invalid syntax, semi not expected after 'trait F'}}
+                           // expected-error@-1 {{function 'foo' in 'trait F' is not implemented for 'trait F'}}
+
+int main() {
+  return 0;
+}

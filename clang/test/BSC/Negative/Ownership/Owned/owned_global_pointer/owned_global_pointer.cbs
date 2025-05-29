@@ -1,0 +1,12 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+
+int owned a;    //expected-error {{type of global variable cannot qualified by 'owned'}}
+owned int b;    //expected-error {{type of global variable cannot qualified by 'owned'}}
+
+int owned* p1;
+int* owned p3;  //expected-error {{type of global variable cannot qualified by 'owned'}}
+
+int** owned p4; //expected-error {{type of global variable cannot qualified by 'owned'}}
+
+int* owned* p5;
+owned int** p6;

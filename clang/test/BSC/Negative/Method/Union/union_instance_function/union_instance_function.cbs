@@ -1,0 +1,18 @@
+// RUN: %clang_cc1 -verify %s
+// expected-no-diagnostics
+
+union SimpleUnion {
+  float uf;
+  int ui;
+  char uc;
+};
+
+int union SimpleUnion::getA(union SimpleUnion * this) { 
+  return this->ui;
+}
+
+int main() {
+  union SimpleUnion u = {.ui = 1};
+  u.getA();
+  return 0;
+}

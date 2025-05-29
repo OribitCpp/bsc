@@ -1,0 +1,19 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+enum E {
+    X3,
+    X4
+};
+
+int enum E::getA(enum E* this) { // expected-note {{previous definition is here}}
+  return X4;
+}
+
+int enum E::getA(enum E* this) { // expected-error {{redefinition of 'getA'}}
+  return X4;
+}
+
+int main() {
+  enum E foo = X3; 
+  return 0;
+}

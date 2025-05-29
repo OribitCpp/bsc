@@ -1,0 +1,30 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+int y = 0;
+owned struct A<T> {  
+ public:
+     int x;
+     ~A(A<T> this) {
+        y++;
+    }
+  };
+int test_do_while() {
+   int n  = 1 ;
+   do {
+     A<int> aaa = {};
+     if (n == 6) {
+       break;
+     }
+     n++;
+   } while (n < 7);
+   return 0;
+}
+
+int main() {
+  test_do_while();
+  return y-6;
+}

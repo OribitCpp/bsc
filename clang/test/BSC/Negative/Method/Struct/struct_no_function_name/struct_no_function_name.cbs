@@ -1,0 +1,11 @@
+// RUN: %clang_cc1 -verify %s
+
+struct Foo {
+  int a;
+};
+
+int main() {
+  struct Foo foo = {.a = 1};
+  int a = struct Foo::(&foo); // expected-error {{expected identifier}}
+  return a - 1;
+}

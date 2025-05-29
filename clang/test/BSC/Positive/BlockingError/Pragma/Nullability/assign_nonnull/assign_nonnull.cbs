@@ -1,0 +1,39 @@
+// RUN: %clang -nullability-check=all  -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// expected-no-diagnostics
+
+safe int *borrow _Nullable foo1(int* borrow a);  
+safe void test1(void) {
+    int a = 10;
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Eassign-nonnull"
+    int *borrow p1 = foo1(&mut a);             // nonnull pointer cannot be assigned by nullable pointer
+    int *borrow _Nullable p2 = foo1(&mut a);
+    #pragma GCC diagnostic pop
+}
+
+void test2(void) {
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Eassign-nonnull"
+  int *borrow p = nullptr;                     // nonnull pointer cannot be assigned by nullable pointer
+  unsafe {
+    int *borrow p2 = nullptr;                  // nonnull pointer cannot be assigned by nullable pointer
+  }
+  #pragma GCC diagnostic pop
+}
+
+// CHECK:      int * foo1(int * a);
+// CHECK-EMPTY: 
+// CHECK:      void test1(void) {
+// CHECK-NEXT:     int a = 10;
+// CHECK-NEXT:     int * p1 = foo1(&a);
+// CHECK-NEXT:     int * p2 = foo1(&a);
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      void test2(void) {
+// CHECK-NEXT:     int * p = 0;
+// CHECK-NEXT:     {
+// CHECK-NEXT:         int * p2 = 0;
+// CHECK-NEXT:     }
+// CHECK-NEXT: }
+// CHECK-EMPTY: 

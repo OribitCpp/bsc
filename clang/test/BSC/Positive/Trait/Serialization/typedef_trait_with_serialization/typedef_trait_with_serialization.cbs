@@ -1,0 +1,36 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// expected-no-diagnostics
+
+// Test with serialization:
+// RUN: %clang_cc1 -triple x86_64-unknown-unknown -emit-pch -o %t %s
+// RUN: %clang_cc1 -x bsc -triple x86_64-unknown-unknown -include-pch %t -ast-dump-all /dev/null \
+// RUN: | sed -e "s/ <undeserialized declarations>//" -e "s/ imported//" \
+// RUN: | FileCheck --strict-whitespace %s
+
+typedef trait F {
+    int foo(This* this, int a);
+}G;
+// CHECK: RecordDecl 0x{{[^ ]*}} <{{.*}}:[[@LINE-3]]:9, col:15> col:15 struct __Trait_F_Vtable definition
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <line:[[@LINE-3]]:5, col:30> col:30 referenced foo 'int (*)(void *, int)'
+// CHECK-NEXT: RecordDecl 0x{{[^ ]*}} <line:[[@LINE-5]]:9, col:15> col:15 struct __Trait_F definition
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <col:9, col:15> col:15 referenced data 'void *'
+// CHECK-NEXT: FieldDecl 0x{{[^ ]*}} <col:9, col:15> col:15 referenced vtable 'struct __Trait_F_Vtable *
+
+int int::foo(int *this, int a) {
+    return *this + a;
+}
+
+impl G for int;
+// CHECK: VarDecl 0x{{[^ ]*}} <line:[[@LINE-1]]:6, col:12> col:12 __int_trait_F 'struct __Trait_F_Vtable':'struct __Trait_F_Vtable' cinit
+// CHECK-NEXT: InitListExpr 0x{{[^ ]*}} <col:6, col:12> 'struct __Trait_F_Vtable'
+// CHECK-NEXT: CStyleCastExpr 0x{{[^ ]*}} <col:6> 'int (*)(void *, int)' <BitCast>
+// CHECK-NEXT: ImplicitCastExpr 0x{{[^ ]*}} <col:6> 'int (*)(int *, int)' <FunctionToPointerDecay> part_of_explicit_cast
+// CHECK-NEXT: DeclRefExpr 0x{{[^ ]*}} <col:6> 'int (int *, int)' lvalue BSCMethod 0x{{[^ ]*}} 'foo' 'int (int *, int)'
+
+int main() {
+    int b = 2;
+    G* p = &b;
+    int a = p->foo(5);
+    return 0;
+}

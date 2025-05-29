@@ -1,0 +1,22 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+
+struct Base {
+    int num;
+};
+
+struct A {
+    int b;
+    owned int* c;
+    owned struct Base base;
+};
+
+int * owned foo(owned int* a) {
+    return (int* owned)a;
+}
+
+void test2() {
+    struct A owned a;
+    int res = a.b;                  //unlike const, a.b's QualType is int(not owned int)
+    int * owned res2 = foo(a.c);      //a.c's QualType is owned int*(not owned int* owned)
+    int res3 = a.base.num;
+} // expected-error {{memory leak of value: `res2`}}

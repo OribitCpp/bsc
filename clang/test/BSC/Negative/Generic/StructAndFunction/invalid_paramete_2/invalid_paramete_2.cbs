@@ -1,0 +1,10 @@
+// RUN: %clang_cc1 -verify %s
+
+void test2<T, int>(T a)         // expected-error {{expected template parameter}}
+{
+  int c = 1;
+}
+
+int main() {
+  return 0;
+}

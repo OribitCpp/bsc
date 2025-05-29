@@ -1,0 +1,42 @@
+// RUN: %clang_cc1 -emit-llvm -o - %s | FileCheck %s
+// RUN: %clang %s -g -o %test.output
+// RUN: %test.output
+// expected-no-diagnostics
+
+owned struct Person<T, H> {
+  public:
+    char name[50];
+    T age;
+    H height;
+    ~Person(This this) {
+    }
+};
+
+// CHECK-DAG: define {{.*}} @struct_Person_int_int_getName
+char* Person<T, H>::getName(This *this) {
+  return this->name;
+}
+
+// CHECK-DAG: define {{.*}} @struct_Person_int_int_getAge
+// CHECK-DAG: define {{.*}} @struct_Person_int_float_getAge
+int Person<T, H>::getAge(This *this) {
+  T a = this->age;
+  return a;
+}
+
+// CHECK-DAG: define {{.*}} @struct_Person_int_float_getHeight
+int Person<T, H>::getHeight(This *this) {
+    return this->height;
+}
+
+int main() {
+    Person<int, int> per = {"davi", 21, 170};
+    char* name = per.getName();
+    int age = per.getAge();
+
+    Person<int, float> per2 = {"ming", 23, 180};
+    int age2 = per2.getAge();
+    float height = per2.getHeight();
+
+    return 0;
+}

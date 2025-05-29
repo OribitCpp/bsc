@@ -1,0 +1,81 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include <stdlib.h>
+safe T *owned safe_malloc<T>(T t) {
+    unsafe {
+        T *addr = (T *)malloc(sizeof(T));
+        if (!addr) {
+            addr = &t;
+            T* forget = &t;
+            *forget = t;
+            exit(EXIT_FAILURE);
+        } else {
+            *addr = t;
+        }
+        return (T *owned)addr;
+	}
+}
+
+safe int get_current_status(void) {
+    return 1;
+}
+
+safe int *owned get_nonnull(int a) {
+    int *owned p = safe_malloc<int>(5);
+    *p = a;
+    return p;
+}
+
+safe int *owned _Nullable get_nullable(int a) {
+    if (get_current_status > 0) {
+        unsafe {
+            int *owned p = safe_malloc<int>(5);
+            *p = a;
+            return p;
+        }
+    } else 
+        return nullptr;
+}
+
+safe void use(int *borrow p) { }
+
+owned struct Data {
+public:
+    int *owned _Nullable p1;
+    int *owned p2;
+    ~Data(This this) {
+        free((void*)this.p2);
+        if (this.p1 != nullptr)
+            free((void*)this.p1);
+    }
+};
+
+safe Data Data::init(int a) {
+    int *owned _Nullable data1 = get_nullable(a);
+    int *owned data2 = get_nonnull(a);
+    Data data = { .p1 = data1, .p2 = data2 };
+    return data;
+}
+
+safe int main(void) {
+    Data data1 = Data::init(5);
+    Data data2 = Data::init(10);
+    Data *borrow _Nullable p = nullptr;
+    if (get_current_status() == 1) {
+        p = &mut data1;
+    } else if (get_current_status() == 2){
+        p = &mut data2;
+    }
+    if (p != nullptr) {
+        use(&mut *(p->p2));
+        if (p->p1 != nullptr) {
+            use(&mut *(p->p1));
+        }
+    }
+    return 0;
+}

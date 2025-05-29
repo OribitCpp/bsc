@@ -1,0 +1,46 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+
+int a = 1;
+const int b = 1;
+struct R {
+   int r1;
+   const int r2;
+};
+struct R g_r;
+
+safe void foo1(int p) {
+  extern int num; // expected-error {{uninitialized declarator is forbidden in the safe zone}}
+  static int num1 = 0; // expected-error {{defining mutable global variables is not allowed within the safe zone}}
+  static const int c1 = 0; // legal
+  &mut a; // expected-error {{global or static variables are not allowed to be mutably borrowed within the safe zone}}
+          // expected-warning@-1{{expression result unused}}
+  &mut num1; // expected-error {{global or static variables are not allowed to be mutably borrowed within the safe zone}}
+             // expected-warning@-1{{expression result unused}}
+  &mut c1; // expected-error {{the expression after '&mut' must be modifiable}}
+          // expected-warning@-1{{expression result unused}}
+  &const a; // legal
+            // expected-warning@-1{{expression result unused}}
+  &const num1; // legal
+               // expected-warning@-1{{expression result unused}}
+  unsafe {
+   static int num2 = 0; // legal
+   &mut a; // expected-warning{{expression result unused}}
+   &mut num2; // expected-warning{{expression result unused}}
+   &const a; // expected-warning{{expression result unused}}
+   &const num2; // expected-warning{{expression result unused}}
+  }
+}
+
+unsafe void foo2(int p) {
+  safe {
+    extern int num; // expected-error {{uninitialized declarator is forbidden in the safe zone}}
+    static int num3 = 0; // expected-error {{defining mutable global variables is not allowed within the safe zone}}
+    static const int c2 = 0; // legal
+    &mut a; // expected-error {{global or static variables are not allowed to be mutably borrowed within the safe zone}}
+            // expected-warning@-1{{expression result unused}}
+    &mut num3; // expected-error {{global or static variables are not allowed to be mutably borrowed within the safe zone}}
+               // expected-warning@-1{{expression result unused}}
+    &const a; // expected-warning{{expression result unused}}
+    &const num3; // expected-warning{{expression result unused}}
+  }
+}

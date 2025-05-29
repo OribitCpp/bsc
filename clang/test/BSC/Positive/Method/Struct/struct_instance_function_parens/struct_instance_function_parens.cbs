@@ -1,0 +1,35 @@
+// RUN: %clang_cc1 -verify %s
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+typedef struct _queue {
+}queue;
+
+queue* queue::reverse(queue* this) {
+	return this;
+}
+
+void destroyQueue(queue** q) {
+	(*q)->reverse();
+    (**q).reverse();
+}
+int main() {return 0;}
+
+// CHECK:      typedef struct _queue queue;
+// CHECK-EMPTY:
+// CHECK-NEXT: struct _queue {
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: queue *queue_reverse(queue *this) {
+// CHECK-NEXT:   return this;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: void destroyQueue(queue **q) {
+// CHECK-NEXT:   queue_reverse((*q));
+// CHECK-NEXT:   queue_reverse(&(**q));
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int main() {return 0;}

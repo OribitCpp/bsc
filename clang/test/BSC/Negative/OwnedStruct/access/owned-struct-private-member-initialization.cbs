@@ -1,0 +1,15 @@
+// RUN: %clang_cc1 -verify %s
+
+owned struct A {
+    int a;
+};
+
+A A::init_a1(){
+  A d ={2}; // expected-error {{need explicit constructor because 'owned struct A' has private field}}
+ return d;
+}
+
+int main() {
+    A b = {.a=1}; // expected-error {{need explicit constructor because 'owned struct A' has private field}}
+    return 0;
+}

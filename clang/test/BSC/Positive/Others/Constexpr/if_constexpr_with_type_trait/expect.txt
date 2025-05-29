@@ -1,0 +1,6 @@
+T is a generic case
+T is pointer
+T is a struct
+T is a generic case
+T is pointer
+T is a struct

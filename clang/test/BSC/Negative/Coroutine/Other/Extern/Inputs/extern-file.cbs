@@ -1,0 +1,6 @@
+#include "future.hbs"
+#include "stdlib.h"
+
+async int f(int n) {
+  return 42 + n;
+}

@@ -1,0 +1,23 @@
+#ifndef _TYPE_TRAIT_HBS
+#define _TYPE_TRAIT_HBS
+
+#include<stdio.h>
+#include "bsc_type_traits.hbs"
+
+struct S<T> { T a; };
+void struct S<T>::foo(struct S<T>* this) {
+    if (is_integral<T>()) {
+        printf("integral\n");
+    } else {
+        printf("not integral\n");
+    }
+}
+
+void bar<T>() {
+    if (is_integral<T>()) {
+        printf("integral\n");
+    } else {
+        printf("not integral\n");
+    }
+}
+#endif /* TypeTrait.hbs */

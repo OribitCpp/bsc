@@ -1,0 +1,14 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// expected-no-diagnostics
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Ereturn-nullable"
+safe int *borrow foo1(int *borrow _Nullable a) {
+    return a;             // cannot return nullable pointer type
+}
+#pragma GCC diagnostic pop
+
+// CHECK:      int * foo1(int * a) {
+// CHECK-NEXT:     return a;
+// CHECK-NEXT: }
+// CHECK-EMPTY:

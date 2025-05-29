@@ -1,0 +1,66 @@
+// RUN: %clang_cc1 -verify %s
+
+struct S {
+    int *borrow _Nullable p;
+};
+safe int *borrow _Nullable get_random_ptr(int *borrow p);
+safe void test1(void) {
+    int a = 10;
+    struct S s = { .p = nullptr };
+    while (s.p == nullptr) {
+        s.p = get_random_ptr(&mut a); // expected-error {{cannot borrow `a` as mutable more than once at a time}}
+                                      // expected-note@-1 {{first mut borrow occurs here}}
+    }
+    *s.p = 20;
+}
+
+safe void test2(void) {
+    int a = 10;
+    struct S s = { .p = nullptr };
+    while (s.p != nullptr) {
+        *s.p = 10;
+        s.p = get_random_ptr(&mut a);
+    }
+    *s.p = 20;  // expected-error {{nullable pointer cannot be dereferenced}}
+}
+
+safe void test3(void) {
+    int a = 10;
+    struct S s = { .p = nullptr };
+    if (s.p != nullptr) {
+        do {
+            *s.p = 10;
+            s.p = get_random_ptr(&mut a);
+        } while (s.p != nullptr);
+        *s.p = 20; // expected-error {{nullable pointer cannot be dereferenced}}
+    }
+}
+
+safe void test4(void) {
+    int a = 10;
+    int b = 10;
+    struct S s1 = { .p = nullptr };
+    struct S s2 = { .p = nullptr };
+    while (s1.p == nullptr || s2.p == nullptr) {
+        s1.p = get_random_ptr(&mut a); // expected-error {{cannot borrow `a` as mutable more than once at a time}}
+                                       // expected-note@-1 {{first mut borrow occurs here}}
+        s2.p = get_random_ptr(&mut b); // expected-error {{cannot borrow `b` as mutable more than once at a time}}
+                                       // expected-note@-1 {{first mut borrow occurs here}}
+    }
+    *s1.p = 20;
+    *s2.p = 20;
+}
+
+safe void test5(void) {
+    int a = 10;
+    struct S s1 = { .p = nullptr };
+    struct S s2 = { .p = nullptr };
+    while (s1.p != nullptr && s2.p != nullptr) {
+        *s1.p = 10;
+        *s2.p = 10;
+        s1.p = get_random_ptr(&mut a);
+        s2.p = get_random_ptr(&mut a);
+    }
+    *s1.p = 20; // expected-error {{nullable pointer cannot be dereferenced}}
+    *s2.p = 20; // expected-error {{nullable pointer cannot be dereferenced}}
+}

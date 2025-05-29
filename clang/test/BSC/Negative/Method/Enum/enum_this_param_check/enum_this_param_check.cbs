@@ -1,0 +1,9 @@
+// RUN: %clang_cc1 -verify %s
+
+enum E {
+    X3,
+    X4
+};
+
+int enum E::getA(int this); // expected-error {{type of parameter 'this' is wrong, expected 'This*' or 'This' or 'enum E*' or 'enum E', but found 'int'}}
+

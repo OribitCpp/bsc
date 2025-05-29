@@ -1,0 +1,29 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include <stdio.h>
+
+unsigned bar<T1, T2>(T1 a, T2 b) {
+  return 33;
+}
+
+long long foo<T1, T2>(T1 a, T2 b) {
+  return 44;
+}
+
+
+int main() {
+  unsigned x1 = bar<int, int>(1, 2);
+  unsigned x2 = bar<double, float>(1.0, 2.0);
+
+  long long y1 = foo<int, float>(1, 1.0);
+  long long y2 = foo<float, long long>(3.0, 99.0);
+
+  printf("%uand %uand\n", x1, x2);
+  printf("%lld, %lld\n", y1, y2);
+  return 0;
+}

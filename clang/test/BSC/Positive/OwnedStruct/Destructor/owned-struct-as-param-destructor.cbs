@@ -1,0 +1,24 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+int x = 0;
+owned struct B{
+    ~B(B this) { 
+      x++;
+   }
+};
+
+int f(B x){
+   return 1;
+}
+int goo(){
+   B b={};
+   f(b);
+   return x;
+}
+int main(void) {
+   goo();
+   return x-1;
+}

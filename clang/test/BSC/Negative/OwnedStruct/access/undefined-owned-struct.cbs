@@ -1,0 +1,20 @@
+// RUN: %clang_cc1 -verify %s
+
+owned struct B {};
+
+A f(); // expected-error {{unknown type name 'A'}}
+
+A g() {} // expected-error {{unknown type name 'A'}}
+
+int q(A a); // expected-error {{unknown type name 'A'}}
+
+A* l(); // expected-error {{unknown type name 'A'}}
+
+A* m() {} // expected-error {{unknown type name 'A'}}
+
+int n(A* a); // expected-error {{unknown type name 'A'}}
+
+int main() {
+    A a; // expected-error {{use of undeclared identifier 'A'}}
+    return 0;
+}

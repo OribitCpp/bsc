@@ -1,0 +1,105 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+#include <stdio.h>
+int g_flag1 = 1;
+int g_flag2 = 1;
+int g_temp = 1;
+owned struct S1<T> {
+public:
+    ~S1(S1<T> this) {
+        g_flag1--;
+    }
+};
+owned struct S2<T> {
+public:
+    S1<T> s1;
+    ~S2(S2<T> this) {
+        g_flag2--;
+    }
+};
+int foo(){
+    if(0) {
+        S1<int> s1 = {};
+    } else if (1) {
+        S1<int> s1 = {};
+        S2<int> s2 = {s1};
+    } else {
+        S1<int> s1 = {};
+    }
+    g_temp = g_flag2;
+    return 0;
+}
+int main() {
+    foo();
+    if (g_temp == 0 && g_flag1 == 0 && g_flag2 == 0) {
+        return 0;
+    }
+    return 1;
+}
+
+// CHECK:struct S1_int {
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:struct S2_int {
+// CHECK-NEXT:     struct S1_int s1;
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S1_int_D( struct S1_int this);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S2_int_D( struct S2_int this);
+// CHECK-EMPTY:
+// CHECK-NEXT:int g_flag1 = 1;
+// CHECK-EMPTY:
+// CHECK-NEXT:int g_flag2 = 1;
+// CHECK-EMPTY:
+// CHECK-NEXT:int g_temp = 1;
+// CHECK-EMPTY:
+// CHECK-NEXT:int foo(void) {
+// CHECK-NEXT:    if (0) {
+// CHECK-NEXT:         struct S1_int s1 = {};
+// CHECK-NEXT:        _Bool s1_is_moved = 0;
+// CHECK-NEXT:        if (!s1_is_moved)
+// CHECK-NEXT:            struct_S1_int_D(s1);
+// CHECK-NEXT:    } else if (1) {
+// CHECK-NEXT:         struct S1_int s1 = {};
+// CHECK-NEXT:        _Bool s1_is_moved = 0;
+// CHECK-NEXT:         struct S2_int s2 = {s1};
+// CHECK-NEXT:        _Bool s2_is_moved = 0;
+// CHECK-NEXT:        s1_is_moved = 1;
+// CHECK-NEXT:        if (!s2_is_moved)
+// CHECK-NEXT:            struct_S2_int_D(s2);
+// CHECK-NEXT:        if (!s1_is_moved)
+// CHECK-NEXT:            struct_S1_int_D(s1);
+// CHECK-NEXT:    } else {
+// CHECK-NEXT:         struct S1_int s1 = {};
+// CHECK-NEXT:        _Bool s1_is_moved = 0;
+// CHECK-NEXT:        if (!s1_is_moved)
+// CHECK-NEXT:            struct_S1_int_D(s1);
+// CHECK-NEXT:    }
+// CHECK-NEXT:    g_temp = g_flag2;
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:int main() {
+// CHECK-NEXT:    foo();
+// CHECK-NEXT:    if (g_temp == 0 && g_flag1 == 0 && g_flag2 == 0) {
+// CHECK-NEXT:        return 0;
+// CHECK-NEXT:    }
+// CHECK-NEXT:    return 1;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S1_int_D( struct S1_int this) {
+// CHECK-NEXT:    _Bool this_is_moved = 0;
+// CHECK-NEXT:    g_flag1--;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_S2_int_D( struct S2_int this) {
+// CHECK-NEXT:    _Bool this_is_moved = 0;
+// CHECK-NEXT:    g_flag2--;
+// CHECK-NEXT:    struct_S1_int_D(this.s1);
+// CHECK-NEXT:}

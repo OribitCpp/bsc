@@ -1,0 +1,25 @@
+// RUN: %clang_cc1 -verify %s
+// expected-no-diagnostics
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+void func8(int a) {}
+
+void func9(int owned * a) {}
+
+void func10(int * owned * a) {}
+
+void func11(int * owned a) {
+	int * b = (int *)a;
+}
+
+void func12(int * owned a) {
+	int * b = (int *)a;
+}
+
+int main() {
+	return 0;
+}

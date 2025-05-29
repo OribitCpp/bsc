@@ -1,0 +1,9 @@
+
+// RUN: %clang -disable-ownership-check %s -o %t.output
+// RUN: %t.output
+
+int main()
+{
+  owned int a = 0;
+  return 0;
+}

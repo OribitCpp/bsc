@@ -1,0 +1,35 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -rewrite-bsc -line %s -o %t-rwline.c
+// RUN: FileCheck --input-file=%t-rwline.c %s --check-prefix=CHECK-L
+// expected-no-diagnostics
+
+#include <stdio.h>
+
+struct S<T>;
+struct S<T>{
+  T a;
+};
+
+T max<T>(T a, T b) {
+  return a > b ? a : b;
+}
+
+// CHECK-L: #line 17 "{{.*}}.cbs"
+// CHECK-L-NEXT: static int max_int(int a, int b) {
+// CHECK-L-NEXT:   return a > b ? a : b;
+// CHECK-L-NEXT: }
+
+int main() {
+  struct S<int> s1 = {.a = 42}; // ClassTemplateSpecializationDecl
+  int a = s1.a;
+  printf("Generic Struct Works!\n");
+  printf("a is %d\n", a);
+  int b = max<int>(2023, 2022);
+  printf("Generic Function Works!\n");
+  printf("b is %d\n", b);
+  return 0;
+}

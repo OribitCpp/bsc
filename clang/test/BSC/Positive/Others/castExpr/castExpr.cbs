@@ -1,0 +1,15 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// expected-no-diagnostics
+
+typedef enum MsgType_e {
+    MSG_MAX_NUM
+} MsgType;
+
+void test(void * a){}
+
+int main(){
+	MsgType a = MSG_MAX_NUM;
+	test((void*)a);
+	return 0;
+}

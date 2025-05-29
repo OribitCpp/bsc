@@ -1,0 +1,52 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+
+trait F {
+    void foo(This* borrow this);
+};
+struct R {
+    int * borrow p1;
+    const int * borrow p2;
+};
+
+typedef int * borrow myInt;
+
+void int::foo(This * borrow this) {}
+
+impl trait F for int;
+
+void test() {
+    int x = 0;
+    float y = 1.0;
+    int *borrow p = &mut x;          // legal
+    float * borrow py = &mut y;     // legal
+    const int * borrow p1 = &const x; // legal
+    int *borrow p2 = &const x;          // expected-error {{incompatible borrow types, cannot cast 'const int *borrow' to 'int *borrow'}}
+    const int * borrow p3 = &mut x; // expected-error {{incompatible borrow types, cannot cast 'int *borrow' to 'const int *borrow'}}
+    const int * borrow p4 = &x; // expected-error {{incompatible borrow types, cannot cast 'int *' to 'const int *borrow'}}
+    const int * borrow *p5 = &const x; // expected-error {{incompatible borrow types, cannot cast 'const int *borrow' to 'const int *borrow *'}}
+    int *p6 = &mut x; // expected-error {{incompatible borrow types, cannot cast 'int *borrow' to 'int *'}}
+
+    p = p2; // legal
+    p = py; // expected-error {{incompatible borrow types, cannot cast 'float *borrow' to 'int *borrow'}}
+    p = p1; // expected-error {{incompatible borrow types, cannot cast 'const int *borrow' to 'int *borrow'}}
+    p1 = p; // expected-error {{incompatible borrow types, cannot cast 'int *borrow' to 'const int *borrow'}}
+    struct R r = { .p1 = p1, .p2 = p2 }; // expected-error {{incompatible borrow types, cannot cast 'const int *borrow' to 'int *borrow}}
+                                         // expected-error@-1 {{incompatible borrow types, cannot cast 'int *borrow' to 'const int *borrow'}}
+    struct R r1 = { p1, p2 }; // expected-error {{incompatible borrow types, cannot cast 'const int *borrow' to 'int *borrow}}
+                              // expected-error@-1 {{incompatible borrow types, cannot cast 'int *borrow' to 'const int *borrow'}}
+    r.p1 = p1; // expected-error {{incompatible borrow types, cannot cast 'const int *borrow' to 'int *borrow'}}
+    r.p1 = p; // legal
+
+    myInt m = &x; // expected-error {{incompatible borrow types, cannot cast 'int *' to 'myInt' (aka 'int *borrow')}}
+    myInt m1 = &mut x; // legal
+    m = &const x; // expected-error {{ncompatible borrow types, cannot cast 'const int *borrow' to 'myInt' (aka 'int *borrow')}}
+
+    trait F * f = &x; // legal
+    trait F * borrow f1 = p; // legal
+    trait F * borrow f2 = py; // expected-error {{incompatible borrow types, cannot cast 'float *borrow' to 'trait F *borrow'}}
+                              // expected-error@-1 {{expected a pointer type which has implemented 'trait F', found 'float'}}
+    f1 = py; // expected-error {{expected a pointer type which has implemented 'trait F', found 'float'}}
+    f1 = p; // legal
+    //p = (int * borrow)f1; // legal
+    f1->foo();
+}

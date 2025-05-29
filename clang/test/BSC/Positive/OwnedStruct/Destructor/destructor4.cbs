@@ -1,0 +1,22 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+owned struct Vec<T> {
+public:
+    T* ptr;
+    int cap;
+    int len;
+    ~Vec(Vec<T> this) {
+    }
+};
+
+struct S {
+    Vec<int> v;
+};
+
+int main() {
+    return 0;
+}

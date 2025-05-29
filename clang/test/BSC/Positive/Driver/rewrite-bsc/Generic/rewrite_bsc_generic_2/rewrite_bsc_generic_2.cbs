@@ -1,0 +1,28 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+struct Foo<T> {
+  T a;
+};
+
+int main() {
+  struct Foo<int> foo = {.a = 42};
+  struct Foo<float> foo_2 = {.a = 1.5};
+  return 0;
+}
+
+// CHECK:      struct Foo_int {
+// CHECK-NEXT:   int a;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct Foo_float {
+// CHECK-NEXT:   float a;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:   struct Foo_int foo = {.a = 42};
+// CHECK-NEXT:   struct Foo_float foo_2 = {.a = 1.5};
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }

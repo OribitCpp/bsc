@@ -1,0 +1,34 @@
+
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+unsafe int add(int x, int y) {
+  return x + y;
+}
+
+safe int sub(int m, int n) {
+  return m - n;
+}
+unsafe int (*p)(int, int) = add;
+safe int (*q)(int , int) = sub;
+
+safe int main(void) {
+  int a = 1;
+  int b = 2;
+  int c = add(a, b);  // expected-error {{unsafe function call is forbidden in the safe zone}}
+  int d = sub(a, b); 
+  int g = p(a, b);    // expected-error {{unsafe function call is forbidden in the safe zone}}
+  int h = q(a, b);
+  safe {
+    int e = add(a, b);  // expected-error {{unsafe function call is forbidden in the safe zone}}
+    int f = sub(a, b);
+    int g = p(a, b);    // expected-error {{unsafe function call is forbidden in the safe zone}}
+    int h = q(a, b);
+  };
+  unsafe {
+    int e = add(a, b);
+    int f = sub(a, b);
+    int g = p(a, b);
+    int h = q(a, b);
+  }
+  return 0;
+}

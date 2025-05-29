@@ -1,0 +1,63 @@
+#include <stdlib.h>
+
+struct _BSC_ListNode<T> {
+    _BSC_ListNode<T>* next;
+    _BSC_ListNode<T>* prev;
+    T element;
+};
+
+unsafe _BSC_ListNode<T>* _BSC_ListNode<T>::new(T el){
+    _BSC_ListNode<T> *rv = (_BSC_ListNode<T> *)malloc(sizeof(_BSC_ListNode<T>));
+    if (!rv) {
+        
+    }
+    rv->next = NULL;
+    rv->prev = NULL;
+    rv->element = el;
+    return rv;
+}
+
+owned struct LinkedList<T> {
+private:
+    _BSC_ListNode<T> *head;
+    _BSC_ListNode<T> *tail;
+    size_t len;
+
+    ~LinkedList(LinkedList<T> this) {
+        _BSC_ListNode<T> *temp = this.head;
+        while (temp != NULL)
+        {
+            temp = this.head->next;
+            {
+                T tempEle = this.head->element;   // node will be destructed
+            }
+            free((void *)this.head);
+            this.head = temp;
+        }
+        this.head = NULL;
+        this.tail = NULL;
+    }
+};
+
+safe LinkedList<T> LinkedList<T>::new(void){
+    unsafe {
+        LinkedList<T> rv = {NULL, NULL, 0};
+        return rv;
+    }
+}
+
+// Adds a new element at the end of the list.
+safe void LinkedList<T>::push_back(LinkedList<T> * borrow this, T el){
+    unsafe {
+        _BSC_ListNode<T> *node = _BSC_ListNode<T>::new(el);
+        node->prev = this->tail;
+        if (this->tail == NULL) {
+            this->head = node;
+        } else {
+            this->tail->next = node;
+        }
+        this->tail = node;
+    }
+    this->len +=1;
+}
+

@@ -1,0 +1,36 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -I %S -o %t-rw.output
+// RUN: %t-rw.output
+
+// #include "a.h"
+/* #include<stdio.h>**//*******************/
+//          #include <memory.h>
+/*** #include <sys/epoll.h>
+// #include <errno.h>
+# include <signal.h>         */
+#include "bsc_header.hbs"
+
+#include <assert.h>  /*121        //*/
+
+#include <stdint.h>
+
+  // #include <math.h>
+
+/*       12 dasa  */
+
+/**/ #include "standard_c_header.h"
+
+int main() {
+  return 0;
+}
+
+// CHECK:      #include "standard_c_header.h"
+// CHECK-NEXT: #include <assert.h>
+// CHECK-NEXT: #include <complex.h>
+// CHECK-NEXT: #include <stdint.h>
+// CHECK-EMPTY:
+// CHECK-EMPTY:
+// CHECK-NEXT: int main() {
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }

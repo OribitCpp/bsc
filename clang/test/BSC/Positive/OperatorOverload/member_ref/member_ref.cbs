@@ -1,0 +1,449 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include <stdlib.h>
+// raw point parameter
+struct A {
+    int m;
+};
+
+struct AP {
+  struct A *a;
+};
+
+__attribute__((operator ->))
+struct A* memberDerefA(struct AP *s) {
+    return s->a;
+}
+
+int test1() {
+    struct A sa = {1};
+    struct AP sap = {&sa};
+    int b = sap->m;
+    if (b != 1) {
+        return -1;
+    }
+    sap->m = 2;
+    if (sap->m != 2) {
+        return -1;
+    }
+    return 0;
+}
+
+struct B {
+    int x;
+    int y;
+};
+
+struct BP {
+  struct A *a;
+  struct B *b;
+};
+
+__attribute__((operator ->))
+struct B* memberDerefB(struct BP *s) {
+    return s->b;
+}
+
+int test2() {
+    struct A sa = {1};
+    struct B sb = {2, 3};
+    struct BP sbp = {&sa, &sb};
+    int a = sbp->x;
+    if (a != 2) {
+        return -1;
+    }
+    int b = sbp->y;
+    if (b != 3) {
+        return -1;
+    }
+    sbp->x = 4;
+    sbp->y = 5;
+    if ((sbp->x + sbp->y) != 9) {
+        return -1;
+    }
+    return 0;
+}
+
+// borrow point parameter
+struct CP {
+  struct A *borrow a;
+};
+
+__attribute__((operator ->))
+struct A *borrow memberDerefC(struct CP * borrow s) {
+    return s->a;
+}
+
+int test3() {
+    struct A sa = {1};
+    struct CP scp = {&mut sa};
+    int b = scp->m;
+    if (b != 1) {
+        return -1;
+    }
+    scp->m = 2;
+    if (scp->m != 2) {
+        return -1;
+    }
+    return 0;
+}
+
+// const borrow point parameter
+struct DP {
+   struct A *borrow a;
+};
+
+__attribute__((operator ->))
+ struct A *borrow memberDerefD(const struct DP * borrow s) {
+    return s->a;
+}
+
+int test4() {
+    struct A sa = {1};
+    struct DP sdp = {&mut sa};
+    int b = sdp->m;
+    if (b != 1) {
+        return -1;
+    }
+    return 0;
+}
+// multiple deref
+struct FP {
+    struct A* a;
+};
+
+struct GP {
+  struct FP fp;
+};
+
+__attribute__((operator ->))
+struct FP* memberDerefG(struct GP *s) {
+    return &s->fp;
+}
+
+int test5() {
+    struct A sa = {1};
+    struct FP fp = {&sa};
+    struct GP sgp = {fp};
+    int c = sgp->a->m;
+    if (c != 1) {
+        return -1;
+    }
+    return 0;
+}
+// Rc
+struct RcData<T> {
+	T data;
+};
+owned struct Rc<T> {
+public:
+  RcData<T> * ptr;
+};
+
+safe Rc<T> Rc<T>::new(T data) {
+    unsafe {
+        struct RcData<T> * RcDataPtr = (struct RcData<T> *)malloc(sizeof(struct RcData<T>));
+        RcDataPtr->data = data;
+        Rc<T> rc = { .ptr = RcDataPtr };
+        return rc;
+    }
+}
+
+__attribute__((operator ->))
+RcData<T> * memberDerefH<T>(Rc<T> * borrow rc) {
+	return rc->ptr;
+}
+
+int test6() {
+	Rc<int> rc = Rc<int>::new(5);
+    if (rc->data != 5) {
+        return -1;
+    }
+	rc->data = 6;
+    if (rc->data != 6) {
+        return -1;
+    }
+    return 0;
+}
+// struct include Rc
+owned struct RcRecord<T>
+{
+public:
+    Rc<T> rc;
+};
+
+__attribute__((operator *))
+Rc<T> deref<T>(RcRecord<T> *rcRecord) {
+	return rcRecord->rc;
+}
+
+__attribute__((operator ->))
+Rc<T> memberDerefI<T>(RcRecord<T> *rcRecord) {
+	return rcRecord->rc;
+}
+
+int test7() {
+    Rc<int> rc1 = Rc<int>::new(5);
+    RcRecord<int> rcRecord = {rc1};
+    Rc<int> rc2 = *rcRecord;
+    int b = rc2->data;
+    if (b != 5) {
+        return -1;
+    }
+    rc2->data = 6;
+    if (rc2->data != 6) {
+        return -1;
+    }
+    // if (rcRecord->data != 5) {     // FIXME: error in source to source, "cannot take the address of an rvalue of type 'struct Rc_int'"
+    //     return -1;
+    // }
+    return 0;
+}
+
+int main(){
+    return test1() || test2() || test3() || test4() || test5() || test6() || test7();
+}
+
+// CHECK: #include <stdlib.h>
+// CHECK-EMPTY: 
+// CHECK-EMPTY: 
+// CHECK:      struct A;
+// CHECK-NEXT: struct AP;
+// CHECK-NEXT: struct B;
+// CHECK-NEXT: struct BP;
+// CHECK-NEXT: struct CP;
+// CHECK-NEXT: struct DP;
+// CHECK-NEXT: struct FP;
+// CHECK-NEXT: struct GP;
+// CHECK-NEXT: struct RcData_int;
+// CHECK-NEXT: struct Rc_int;
+// CHECK-NEXT: struct RcRecord_int;
+// CHECK-DAG:      struct A {
+// CHECK-DAG-NEXT:     int m;
+// CHECK-DAG-NEXT: };
+// CHECK-DAG:      struct AP {
+// CHECK-DAG-NEXT:   struct A *a;
+// CHECK-DAG-NEXT: };
+// CHECK-DAG-:      struct B {
+// CHECK-DAG--NEXT:     int x;
+// CHECK-DAG--NEXT:     int y;
+// CHECK-DAG--NEXT: };
+// CHECK-DAG:      struct BP {
+// CHECK-DAG-NEXT:   struct A *a;
+// CHECK-DAG-NEXT:   struct B *b;
+// CHECK-DAG-NEXT: };
+// CHECK-DAG:      struct CP {
+// CHECK-DAG-NEXT:     struct A * a;
+// CHECK-DAG-NEXT: };
+// CHECK-DAG:      struct DP {
+// CHECK-DAG-NEXT:     struct A * a;
+// CHECK-DAG-NEXT: };
+// CHECK-DAG:      struct FP {
+// CHECK-DAG-NEXT:     struct A* a;
+// CHECK-DAG-NEXT: };
+// CHECK-DAG:      struct Rc_int {
+// CHECK-DAG-NEXT:     struct RcData_int *ptr;
+// CHECK-DAG-NEXT: };
+// CHECK-DAG:      struct RcData_int {
+// CHECK-DAG-NEXT:     int data;
+// CHECK-DAG-NEXT: };
+// CHECK:      struct GP {
+// CHECK-NEXT:   struct FP fp;
+// CHECK-NEXT: };
+// CHECK-EMPTY: 
+// CHECK:      struct RcRecord_int {
+// CHECK-NEXT:      struct Rc_int rc;
+// CHECK-NEXT: };
+// CHECK-EMPTY: 
+// CHECK:      static  struct Rc_int struct_Rc_int_new(int data);
+// CHECK-EMPTY: 
+// CHECK:      static void struct_Rc_int_D( struct Rc_int this);
+// CHECK-EMPTY: 
+// CHECK:      static struct RcData_int *memberDerefH_int( struct Rc_int * rc);
+// CHECK-EMPTY: 
+// CHECK:      static void struct_RcRecord_int_D( struct RcRecord_int this);
+// CHECK-EMPTY: 
+// CHECK:      static  struct Rc_int deref_int( struct RcRecord_int *rcRecord);
+// CHECK-EMPTY: 
+// CHECK:      struct A *memberDerefA(struct AP *s) {
+// CHECK-NEXT:     return s->a;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int test1(void) {
+// CHECK-NEXT:     struct A sa = {1};
+// CHECK-NEXT:     struct AP sap = {&sa};
+// CHECK-NEXT:     int b = memberDerefA(&sap)->m;
+// CHECK-NEXT:     if (b != 1) {
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     memberDerefA(&sap)->m = 2;
+// CHECK-NEXT:     if (memberDerefA(&sap)->m != 2) {
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      struct B *memberDerefB(struct BP *s) {
+// CHECK-NEXT:     return s->b;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int test2(void) {
+// CHECK-NEXT:     struct A sa = {1};
+// CHECK-NEXT:     struct B sb = {2, 3};
+// CHECK-NEXT:     struct BP sbp = {&sa, &sb};
+// CHECK-NEXT:     int a = memberDerefB(&sbp)->x;
+// CHECK-NEXT:     if (a != 2) {
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     int b = memberDerefB(&sbp)->y;
+// CHECK-NEXT:     if (b != 3) {
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     memberDerefB(&sbp)->x = 4;
+// CHECK-NEXT:     memberDerefB(&sbp)->y = 5;
+// CHECK-NEXT:     if ((memberDerefB(&sbp)->x + memberDerefB(&sbp)->y) != 9) {
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      struct A * memberDerefC(struct CP * s) {
+// CHECK-NEXT:     return s->a;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int test3(void) {
+// CHECK-NEXT:     struct A sa = {1};
+// CHECK-NEXT:     struct CP scp = {&sa};
+// CHECK-NEXT:     int b = memberDerefC(&scp)->m;
+// CHECK-NEXT:     if (b != 1) {
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     memberDerefC(&scp)->m = 2;
+// CHECK-NEXT:     if (memberDerefC(&scp)->m != 2) {
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      struct A * memberDerefD(const struct DP * s) {
+// CHECK-NEXT:     return s->a;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int test4(void) {
+// CHECK-NEXT:     struct A sa = {1};
+// CHECK-NEXT:     struct DP sdp = {&sa};
+// CHECK-NEXT:     int b = memberDerefD(&sdp)->m;
+// CHECK-NEXT:     if (b != 1) {
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      struct FP *memberDerefG(struct GP *s) {
+// CHECK-NEXT:     return &s->fp;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int test5(void) {
+// CHECK-NEXT:     struct A sa = {1};
+// CHECK-NEXT:     struct FP fp = {&sa};
+// CHECK-NEXT:     struct GP sgp = {fp};
+// CHECK-NEXT:     int c = memberDerefG(&sgp)->a->m;
+// CHECK-NEXT:     if (c != 1) {
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int test6(void) {
+// CHECK-NEXT:      struct Rc_int rc = struct_Rc_int_new(5);
+// CHECK-NEXT:     _Bool rc_is_moved = 0;
+// CHECK-NEXT:     if (memberDerefH_int(&rc)->data != 5) {
+// CHECK-NEXT:         if (!rc_is_moved)
+// CHECK-NEXT:             struct_Rc_int_D(rc);
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     memberDerefH_int(&rc)->data = 6;
+// CHECK-NEXT:     if (memberDerefH_int(&rc)->data != 6) {
+// CHECK-NEXT:         if (!rc_is_moved)
+// CHECK-NEXT:             struct_Rc_int_D(rc);
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     if (!rc_is_moved)
+// CHECK-NEXT:         struct_Rc_int_D(rc);
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int test7(void) {
+// CHECK-NEXT:      struct Rc_int rc1 = struct_Rc_int_new(5);
+// CHECK-NEXT:     _Bool rc1_is_moved = 0;
+// CHECK-NEXT:      struct RcRecord_int rcRecord = {rc1};
+// CHECK-NEXT:     _Bool rcRecord_is_moved = 0;
+// CHECK-NEXT:     rc1_is_moved = 1;
+// CHECK-NEXT:      struct Rc_int rc2 = deref_int(&rcRecord);
+// CHECK-NEXT:     _Bool rc2_is_moved = 0;
+// CHECK-NEXT:     int b = memberDerefH_int(&rc2)->data;
+// CHECK-NEXT:     if (b != 5) {
+// CHECK-NEXT:         if (!rc2_is_moved)
+// CHECK-NEXT:             struct_Rc_int_D(rc2);
+// CHECK-NEXT:         if (!rcRecord_is_moved)
+// CHECK-NEXT:             struct_RcRecord_int_D(rcRecord);
+// CHECK-NEXT:         if (!rc1_is_moved)
+// CHECK-NEXT:             struct_Rc_int_D(rc1);
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     memberDerefH_int(&rc2)->data = 6;
+// CHECK-NEXT:     if (memberDerefH_int(&rc2)->data != 6) {
+// CHECK-NEXT:         if (!rc2_is_moved)
+// CHECK-NEXT:             struct_Rc_int_D(rc2);
+// CHECK-NEXT:         if (!rcRecord_is_moved)
+// CHECK-NEXT:             struct_RcRecord_int_D(rcRecord);
+// CHECK-NEXT:         if (!rc1_is_moved)
+// CHECK-NEXT:             struct_Rc_int_D(rc1);
+// CHECK-NEXT:         return -1;
+// CHECK-NEXT:     }
+// CHECK-NEXT:     if (!rc2_is_moved)
+// CHECK-NEXT:         struct_Rc_int_D(rc2);
+// CHECK-NEXT:     if (!rcRecord_is_moved)
+// CHECK-NEXT:         struct_RcRecord_int_D(rcRecord);
+// CHECK-NEXT:     if (!rc1_is_moved)
+// CHECK-NEXT:         struct_Rc_int_D(rc1);
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      int main(){
+// CHECK-NEXT:     return test1() || test2() || test3() || test4() || test5() || test6() || test7();
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      static  struct Rc_int struct_Rc_int_new(int data) {
+// CHECK-NEXT:     {
+// CHECK-NEXT:         struct RcData_int *RcDataPtr = (struct RcData_int *)malloc(sizeof(struct RcData_int));
+// CHECK-NEXT:         RcDataPtr->data = data;
+// CHECK-NEXT:          struct Rc_int rc = {.ptr = RcDataPtr};
+// CHECK-NEXT:         _Bool rc_is_moved = 0;
+// CHECK-NEXT:         return rc;
+// CHECK-NEXT:     }
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      static void struct_Rc_int_D( struct Rc_int this) {
+// CHECK-NEXT:     _Bool this_is_moved = 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      static struct RcData_int *memberDerefH_int( struct Rc_int * rc) {
+// CHECK-NEXT:     return rc->ptr;
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      static void struct_RcRecord_int_D( struct RcRecord_int this) {
+// CHECK-NEXT:     _Bool this_is_moved = 0;
+// CHECK-NEXT:     struct_Rc_int_D(this.rc);
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK:      static  struct Rc_int deref_int( struct RcRecord_int *rcRecord) {
+// CHECK-NEXT:     return rcRecord->rc;
+// CHECK-NEXT: }
+// CHECK-EMPTY:

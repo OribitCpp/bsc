@@ -1,0 +1,39 @@
+// RUN: %clang -x bsc %s -o %test1.output
+// RUN: %test1.output
+// RUN: %clang -x c++ %s -o %test2.output
+// RUN: %test2.output
+// expected-no-diagnostics
+
+
+
+#ifdef __cplusplus
+struct A{
+  int x;
+  void setX(int x) {
+    this->x = x;
+  }
+  int getX() {
+    return x;
+  }
+};
+#endif
+
+#ifdef __bishengc // predefined macro in the compiler
+struct A{
+  int x;
+};
+
+void struct A::setX(This* this, int x) {
+  this->x = x;
+}
+
+int struct A::getX(This* this) {
+  return this->x;
+}
+#endif
+
+int main() {
+  struct A a;
+  a.setX(42);
+  return a.getX() - 42;
+}

@@ -1,0 +1,48 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+struct Foo {
+  int a;
+};
+
+int struct Foo::getA(struct Foo* this) {
+  return this->a;
+}
+
+void int::increase(int *this) {
+  *this = *this + 1;
+}
+
+
+
+int main() {
+  struct Foo foo = {.a = 42};
+  int a = foo.getA();  // a is 42
+  int b = 41;
+  b.increase(); // b is 42
+  int::increase(&b);
+  return 0;
+}  
+
+// CHECK:struct Foo {
+// CHECK-NEXT:  int a;
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:int struct_Foo_getA(struct Foo *this) {
+// CHECK-NEXT:  return this->a;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:void int_increase(int *this) {
+// CHECK-NEXT:  *this = *this + 1;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:int main(void) {
+// CHECK-NEXT:  struct Foo foo = {.a = 42};
+// CHECK-NEXT:  int a = struct_Foo_getA(&foo);
+// CHECK-NEXT:  int b = 41;
+// CHECK-NEXT:  int_increase(&b);
+// CHECK-NEXT:  int_increase(&b);
+// CHECK-NEXT:  return 0;
+// CHECK-NEXT:}

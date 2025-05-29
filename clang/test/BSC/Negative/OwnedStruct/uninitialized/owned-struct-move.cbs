@@ -1,0 +1,17 @@
+// RUN: %clang_cc1 -verify %s
+owned struct A {  
+   public:
+   int x;
+   int y ;
+  ~A(A this){
+  }
+};                       
+int f(A a){ return 1;}
+
+
+int main() {
+   A a = {1, 2};
+   A b  = a;
+   f(a); // expected-error {{use of moved value: `a`}}
+   return 0;
+}

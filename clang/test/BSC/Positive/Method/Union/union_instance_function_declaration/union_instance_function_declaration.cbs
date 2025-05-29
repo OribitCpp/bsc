@@ -1,0 +1,35 @@
+// RUN: %clang_cc1 -verify %s
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+union SimpleUnion {
+  float uf;
+  int ui;
+  char uc;
+};
+
+int union SimpleUnion::getA(union SimpleUnion* this);
+
+int union SimpleUnion::getB(union SimpleUnion this) {
+  return 1;
+}
+
+int main() {
+  union SimpleUnion u = {.ui = 1};
+  u.getA();
+  u.getB();
+  return 0;
+}
+
+int union SimpleUnion::getA(union SimpleUnion * this) { 
+  return this->ui;
+}
+
+// CHECK: int union_SimpleUnion_getA(union SimpleUnion *this);
+// CHECK: int union_SimpleUnion_getB(union SimpleUnion this) {
+
+// CHECK: union_SimpleUnion_getA(&u);
+// CHECK: int union_SimpleUnion_getA(union SimpleUnion *this) {

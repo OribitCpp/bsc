@@ -1,0 +1,28 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+struct PollResult<T> {
+    _Bool isPending;
+};
+
+struct PollResult<int> int::poll() {
+    struct PollResult<int> s;
+    return s;
+}
+
+void struct PollResult<T>::foo(struct PollResult<T> *this) {
+}
+
+
+int main() {
+    struct PollResult<int> (*pollFunc)() = int::poll;
+    struct PollResult<int> res = pollFunc();
+    if (res.isPending) {
+        res.foo();
+    }
+    return 0;
+}

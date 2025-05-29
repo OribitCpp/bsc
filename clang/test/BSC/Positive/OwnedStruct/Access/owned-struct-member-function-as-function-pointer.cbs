@@ -1,0 +1,20 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+int b = 1;
+
+owned struct A {
+    public:
+        int a;
+        int f(A* this) { return b; }
+};
+
+int main() {
+    A a = {.a = 1};
+    int b = A::f(&a);
+    int c = a.f();
+    return b - c;
+}

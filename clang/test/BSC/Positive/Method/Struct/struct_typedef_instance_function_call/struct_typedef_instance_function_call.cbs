@@ -1,0 +1,15 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// expected-no-diagnostics
+
+typedef struct _queue {
+} queue;
+
+void queue::empty(queue *this) {
+}
+
+int main() {
+    queue q;
+    q.empty();
+    return 0;
+}

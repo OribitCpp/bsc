@@ -1,0 +1,57 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+
+trait Future<T> {
+    T poll(This* this);
+};
+
+int int::poll(int* this) {
+    return *this;
+}
+
+impl trait Future<int> for int;
+
+int main() {
+  int a = 1;
+  trait Future<int> *f = &a;
+  void *p = (void *)f;
+  int *q = (int *)f;
+  float *r = (float *)f;
+  if (p == f && q == f && r == f) {
+    return 0;
+  }
+  return 1;
+}
+
+// CHECK:      struct __Trait_Future_Vtable_int {
+// CHECK-NEXT:   int (*poll)(void *);
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct __Trait_Future_int {
+// CHECK-NEXT:   void *data;
+// CHECK-NEXT:   struct __Trait_Future_Vtable_int *vtable;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: int int_poll(int *this) {
+// CHECK-NEXT:   return *this;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: struct __Trait_Future_Vtable_int __int_trait_Future = {.poll = (int (*)(void *))int_poll};
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:   int a = 1;
+// CHECK-NEXT:   struct __Trait_Future_int f = {&a, &__int_trait_Future};
+// CHECK-NEXT:   void *p = (void *)f.data;
+// CHECK-NEXT:   int *q = (int *)f.data;
+// CHECK-NEXT:   float *r = (float *)f.data;
+// CHECK-NEXT:   if (p == f.data && q == f.data && r == f.data) {
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT:   }
+// CHECK-NEXT:   return 1;
+// CHECK-NEXT: }

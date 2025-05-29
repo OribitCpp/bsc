@@ -1,0 +1,16 @@
+// RUN: %clang_cc1 -internal-isystem %S/../../../../../../lib/Headers/bsc_include -verify %s
+
+#include "../../async-func-read-opposite.hbs"
+
+async int f(int start) { 
+  int result = start;
+  while (result != await read(1)) { // expected-error {{await expression is not allowed to appear in condition statement of while loop}}
+                                    // expected-error@-1 {{await expression is not allowed to appear in binary operator expression}}
+    result = await read(1);
+  }
+  return result;
+}
+
+int main() {
+  return 0;
+}

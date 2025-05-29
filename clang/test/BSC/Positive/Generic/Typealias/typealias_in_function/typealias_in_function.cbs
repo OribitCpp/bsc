@@ -1,0 +1,110 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+struct S1<T> {};
+typedef S1_int = struct S1<int>;
+typedef S1_T<T> = struct S1<T>;
+S1_int struct S1<T>::bar1(struct S1<T>* this) {
+    S1_int s;
+    return s;
+}
+S1_T<T> struct S1<T>::bar2(struct S1<T>* this) {
+    return *this;
+}
+
+S1_int foo1(S1_int t) {
+    return t;
+}
+S1_T<T> foo2<T>(S1_T<T> t) {
+    return t;
+}
+
+struct S2<T1, T2> {};
+typedef S2_int_int = struct S2<int, int>;
+typedef S2_T<T> = struct S2<T, T>;
+typedef S2_T_int<T> = struct S2<T, int>;
+
+S2_int_int struct S2<T1, T2>::bar3(This* this) {
+    S2_int_int s;
+    return s;
+}
+S2_T<T1> struct S2<T1, T2>::bar4(This* this) {
+    S2_T<T1> s;
+    return s;
+}
+S2_T_int<T1> struct S2<T1, T2>::bar5(This* this) {
+    S2_T_int<T1> s;
+    return s;
+}
+S2_int_int foo3(S2_int_int t) {
+    return t;
+}
+S2_T<T> foo4<T>(S2_T<T> t) {
+    return t;
+}
+S2_T_int<T> foo5<T>(S2_T_int<T> t) {
+    return t;
+}
+
+int main() {
+    S1_int s1;
+    S1_int s2 = foo1(s1);
+    S1_int* p1 = &s1;
+    S1_T<int> s3;
+    S1_T<int> s4 = foo2<int>(s3);
+    S1_T<int>* p2 = &s3;
+    s1.bar1();
+    s2.bar1();
+    s3.bar1();
+    s4.bar1();
+    p1->bar1();
+    p2->bar1();
+    s1.bar2();
+    s2.bar2();
+    s3.bar2();
+    s4.bar2();
+    p1->bar2();
+    p2->bar2();
+
+    S2_int_int s5;
+    S2_int_int s6 = foo3(s5);
+    S2_int_int* p3 = &s5;
+    S2_T<int> s7;
+    S2_T<int> s8 = foo4<int>(s7);
+    S2_T<int>* p4 = &s7;
+    S2_T_int<int> s9;
+    S2_T_int<int> s10 = foo5<int>(s9);
+    S2_T_int<int>* p5 = &s9;
+    s5.bar3();
+    s6.bar3();
+    s7.bar3();
+    s8.bar3();
+    s9.bar3();    
+    s10.bar3();
+    p3->bar3();
+    p4->bar3();
+    p5->bar3();    
+    s5.bar4();
+    s6.bar4();
+    s7.bar4();
+    s8.bar4();
+    s9.bar4();    
+    s10.bar4();
+    p3->bar4();
+    p4->bar4();
+    p5->bar4();    
+    s5.bar5();
+    s6.bar5();
+    s7.bar5();
+    s8.bar5();
+    s9.bar5();    
+    s10.bar5();
+    p3->bar5();
+    p4->bar5();
+    p5->bar5();   
+    return 0;
+}

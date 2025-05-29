@@ -1,0 +1,18 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+int b = 1;
+
+owned struct A {
+    public:
+        int a;
+        int f(A* borrow this) { return b; }
+};
+
+int main() {
+
+    return 0;
+}

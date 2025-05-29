@@ -1,0 +1,56 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+
+trait F<T> {};
+struct S {};
+struct S;
+typedef trait F<int>* (*pollFunc) (struct S s);
+
+typedef struct EQueueFunc {
+    pollFunc func;
+} EQueueFunc;
+
+trait F<int>* poll(struct S s) {
+  trait F<int> *t;
+  return t;
+}
+
+int main() {
+  EQueueFunc f = {.func = poll};
+  struct S s;
+  f.func(s);
+  return 0;
+}
+
+// CHECK: struct __Trait_F_Vtable_int;
+// CHECK-NEXT: struct __Trait_F_int;
+// CHECK-NEXT: struct S;
+// CHECK-NEXT: struct EQueueFunc;
+// CHECK-NEXT: typedef struct __Trait_F_int (*pollFunc)(struct S);
+// CHECK-EMPTY:
+// CHECK-NEXT: typedef struct EQueueFunc EQueueFunc;
+// CHECK-EMPTY:
+// CHECK-NEXT: struct S {};
+// CHECK-EMPTY:
+// CHECK-NEXT: struct __Trait_F_int {
+// CHECK-NEXT:     void *data;
+// CHECK-NEXT:     struct __Trait_F_Vtable_int *vtable;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct EQueueFunc {
+// CHECK-NEXT:     pollFunc func;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct __Trait_F_int poll(struct S s) {
+// CHECK-NEXT:     struct __Trait_F_int t;
+// CHECK-NEXT:     return t;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int main(void) {
+// CHECK-NEXT:     EQueueFunc f = {.func = poll};
+// CHECK-NEXT:     struct S s;
+// CHECK-NEXT:     f.func(s);
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }

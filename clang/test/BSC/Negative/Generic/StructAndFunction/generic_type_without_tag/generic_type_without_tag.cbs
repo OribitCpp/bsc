@@ -1,0 +1,12 @@
+// RUN: %clang_cc1  -verify %s
+
+struct S<T> {};
+void S<int>::foo(This* this) {}  // expected-error {{extended type of a BSC member function cannot be an instantiated type}}
+
+trait F {};
+impl trait F for S<T>; // expected-error {{use of undeclared identifier 'T'}}
+impl trait F for S<int>; // expected-error {{cannot impl trait for an instantiated type}}
+
+void struct S<T>::foo1(This* this) {} // expected-note {{previous definition is here}}
+
+void S<T>::foo1(This* this) {} // expected-error {{redefinition of 'foo1'}}

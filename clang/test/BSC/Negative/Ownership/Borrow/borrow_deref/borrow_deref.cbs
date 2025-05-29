@@ -1,0 +1,124 @@
+// RUN: %clang_cc1 -ast-dump -verify %s
+
+struct R {
+    int * owned p;
+};
+
+int * owned foo(int * owned a) {
+    return a;
+}
+int owned foo1() {
+    int owned a = 1;
+    int owned * borrow b = &mut a;
+    return *b; // expected-error {{borrow type does not allow move ownership}}
+}
+
+void foo2() {
+    int * borrow b = &mut a;              // expected-error {{use of undeclared identifier 'a'}}
+    int * borrow c = &mut *p;             // expected-error {{use of undeclared identifier 'p'}}
+    const int * borrow d = &const q;      // expected-error {{use of undeclared identifier 'q'}}
+    const int * borrow e = &const *s;     // expected-error {{use of undeclared identifier 's'}}
+    return;
+}
+
+int owned test_use(int owned a){
+    return a;
+}
+int foo3() {
+    int owned a = 1;
+    int owned * borrow b = &mut a;
+    int owned c = test_use(*b);     // expected-error {{borrow type does not allow move ownership}}
+    int d = (int)a;
+    return 0;
+}
+
+struct S1 {
+    int owned * borrow a;
+    int * b;
+};
+int foo4() {
+    int owned m = 1;
+    int n = 1;
+    struct S1 k = {&mut m, &n};
+    int owned a = *(k.a);          // expected-error {{borrow type does not allow move ownership}}
+    int b = *(k.b);
+}
+
+struct S2 {
+    int * a;
+    int * b;
+};
+int foo5() {
+    int m = 1;
+    int n = 1;
+    struct S2 owned * borrow k = &mut(struct S2 owned){&m, &n};
+    struct S2 owned a = *(k);    // expected-error {{borrow type does not allow move ownership}}
+}
+
+
+struct s<T> {};
+void test1<T>(){
+    struct s<T> *a;
+    struct s<T> * borrow g = &mut *a;
+}
+
+void test2<T>(){
+    struct s<T> *a;
+    int * borrow g = &mut *a; // expected-error {{incompatible borrow types, cannot cast 's<int> *borrow' to 'int *borrow'}}
+}
+
+void test3<T>(){
+    struct s<T> *a;
+    const struct s<T> * borrow g = &const *a;
+}
+
+void test4<T>(){
+    struct s<T> *a;
+    const int * borrow g = &const *a; // expected-error {{incompatible borrow types, cannot cast 'const s<int> *borrow' to 'const int *borrow'}}
+}
+
+void test() {
+	int a = 0;
+    int *p1 = &a;
+	const int* p2 = &a;
+	int * owned p3 = (int * owned)&a;
+
+	int * borrow b1 = &mut *p1; // legal
+    const int * borrow b2 = &mut *p2; // legal
+    int * borrow b3 = &mut *p3; // legal
+    const int * borrow b4 = &const *p1; // legal
+    const int * borrow b5 = &const *p2; // legal
+    const int * borrow b6 = &const *p3; // legal
+
+	int *owned * borrow b7 =&mut p3; // legal
+	const int *owned * borrow b8 =&const p3; // legal
+
+    // T 是 copy 语义，p 是 immut 借用
+	int a1 = *b4; // legal
+    *b4 = a1; // expected-error {{read-only variable is not assignable}}
+    // T 是 copy 语义，p 是 mut 借用
+    int a2 = *b1; // legal
+    *b1 = a2; // legal
+    // T 是 move 语义，p 是 immut 借用
+    int * owned a3 = *b8; // expected-error {{borrow type does not allow move ownership}}
+    int * owned a4 = ((int * owned)*b8); // expected-error {{borrow type does not allow move ownership}}
+    *b8 = p3; // expected-error {{read-only variable is not assignable}}
+    // T 是 move 语义，p 是 mut 借用
+    a3 = *b7; // expected-error {{borrow type does not allow move ownership}}
+    a3 = ((int * owned)*b7); // expected-error {{borrow type does not allow move ownership}}
+    *b7; // expected-warning {{expression result unused}}
+    *b7 = a3; // legal
+
+    struct R r = {p3};
+    struct R * borrow b9 = &mut r;
+    struct R r1 = *b9; // legal
+    int * owned *borrow b10 = &mut r.p;
+    a4 = *b10; // expected-error {{borrow type does not allow move ownership}}
+
+    foo(*b8); // expected-error {{memory leak because temporary variable 'foo(*b8)' is owned or indirect owned type, please fix it}}
+              // expected-error@-1 {{borrow type does not allow move ownership}}
+    test1<int>();
+    test2<int>(); // expected-note {{in instantiation of function template specialization 'test2<int>' requested here}}
+    test3<int>();
+    test4<int>(); // expected-note {{in instantiation of function template specialization 'test4<int>' requested here}}
+}

@@ -1,0 +1,28 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+trait F{};
+
+struct S<T> {};
+union U<T> {};
+impl trait F for S<T>; // expected-error {{use of undeclared identifier 'T'}}
+impl trait F for struct S<T>; // expected-error {{use of undeclared identifier 'T'}}
+impl trait F for S<int>; // expected-error {{cannot impl trait for an instantiated type}}
+impl trait F for struct S<int>; // expected-error {{cannot impl trait for an instantiated type}}
+impl trait F for U<T>; // expected-error {{use of undeclared identifier 'T'}}
+impl trait F for union U<T>; // expected-error {{use of undeclared identifier 'T'}}
+impl trait F for U<int>; // expected-error {{cannot impl trait for an instantiated type}}
+impl trait F for union U<int>; // expected-error {{cannot impl trait for an instantiated type}}
+
+owned struct K<T> {};
+impl trait F for K<T>; // expected-error {{use of undeclared identifier 'T'}}
+impl trait F for K<int>; // expected-error {{cannot impl trait for an instantiated type}}
+
+struct M {
+    U<int> u;
+    S<int> s;
+    K<int> k;
+};
+impl trait F for U<int>; // expected-error {{cannot impl trait for an instantiated type}}
+impl trait F for union U<int>; // expected-error {{cannot impl trait for an instantiated type}}
+impl trait F for S<int>; // expected-error {{cannot impl trait for an instantiated type}}
+impl trait F for struct S<int>; // expected-error {{cannot impl trait for an instantiated type}}
+impl trait F for K<int>; // expected-error {{cannot impl trait for an instantiated type}}

@@ -1,0 +1,12 @@
+// RUN: %clang_cc1 %s -verify 
+
+#include<stdlib.h>          // expected-error{{'stdlib.h' file not found}}
+
+typedef void (*FNPT)(size_t);
+
+extern FNPT fnpt1;
+
+int main() {
+    size_t a1 = 1;
+    return 0;
+}

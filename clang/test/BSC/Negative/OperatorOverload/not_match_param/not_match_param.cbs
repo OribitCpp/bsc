@@ -1,0 +1,146 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+struct E {
+    int a;
+};
+
+struct F {
+    int * a;
+};
+int a = 1;
+// unary
+__attribute((operator ->))
+int * operatorUnary1() {                             // expected-error {{overloaded function 'operatorUnary1' first parameter or return type must be struct or enumeration pointer type}}
+    return &a;
+}
+
+__attribute((operator ->))
+int * operatorUnary2(struct F e1) {                  // expected-error {{overloaded function 'operatorUnary2' first parameter or return type must be struct or enumeration pointer type}}
+    return e1.a;
+}
+
+__attribute((operator ->))
+int * operatorUnary3(struct F e1, struct F e2) {      // expected-error {{overloaded function 'operatorUnary3' first parameter or return type must be struct or enumeration pointer type}}
+    return e1.a;
+}
+
+__attribute((operator ->))
+int * operatorUnary4(struct F *e1, struct F e2) {      // expected-error {{overloaded 'operatorUnary4' must be a unary operator (has 2 parameters)}}
+    return e1->a;
+}
+
+__attribute((operator ->))
+int * operatorUnary5(struct F *e1) {                    // ok
+    return e1->a;
+}
+
+__attribute((operator ~))
+int operatorUnary6() {                             // expected-error {{overloaded 'operatorUnary6' must have at least one parameter of class or enumeration type}}
+    return ~a;
+}
+
+__attribute((operator ~))
+int operatorUnary7(struct F e1) {                  // ok
+    return *e1.a;
+}
+
+__attribute((operator ~))
+int operatorUnary8(struct F e1, struct F e2) {      // expected-error {{overloaded 'operatorUnary8' must be a unary operator (has 2 parameters)}}
+    return *e1.a;
+}
+
+__attribute((operator ~))
+int operatorUnary9(struct F *e1) {                 // expected-error {{overloaded 'operatorUnary9' must have at least one parameter of class or enumeration type}}
+    return *e1->a;
+}
+
+// binary or unary
+__attribute((operator *))
+int operatorBinOrUn1() {                               // expected-error {{overloaded 'operatorBinOrUn1' must have at least one parameter of class or enumeration type}}
+    return 1;
+}
+
+__attribute((operator *))
+int operatorBinOrUn2(struct E e1) {                    // expected-error {{overloaded function 'operatorBinOrUn2' first parameter or return type must be struct or enumeration pointer type}}
+    return e1.a;
+}
+
+__attribute((operator *))
+int * operatorBinOrUn3(struct F* e1) {                  // ok
+    return e1->a;
+}
+
+__attribute((operator *))
+int operatorBinOrUn4(struct E e1, struct E e2) {        // ok
+    return e1.a - e2.a;
+}
+
+__attribute((operator &))
+int operatorBinOrUn5() {                                // expected-error {{overloaded 'operatorBinOrUn5' must have at least one parameter of class or enumeration type}}
+    return 1;
+}
+
+__attribute((operator &))
+int operatorBinOrUn6(struct E e1) {                     // expected-error {{overloaded 'operatorBinOrUn6' must be a binary operator (has 1 parameter)}}
+    return e1.a;
+}
+
+__attribute((operator &))
+int operatorBinOrUn7(struct F* e1) {                    // expected-error {{overloaded 'operatorBinOrUn7' must have at least one parameter of class or enumeration type}}
+    return *e1->a;
+}
+
+__attribute((operator &))
+int operatorBinOrUn8(struct E e1, struct E e2) {        // ok
+    return e1.a - e2.a;
+}
+
+struct G {
+    int * a;
+};
+
+// binary
+__attribute((operator %))
+int operatorBinary1() {                               // expected-error {{overloaded 'operatorBinary1' must have at least one parameter of class or enumeration type}}
+    return 1;
+}
+
+__attribute((operator %))
+int operatorBinary2(int b) {                          // expected-error {{overloaded 'operatorBinary2' must have at least one parameter of class or enumeration type}}
+    return 1;
+}
+
+__attribute((operator %))
+int operatorBinary3(struct E e1) {                    // expected-error {{overloaded 'operatorBinary3' must be a binary operator (has 1 parameter)}}
+    return e1.a;
+}
+
+__attribute((operator %))
+int operatorBinary4(struct E e1, struct E e2) {
+    return e1.a % e2.a;
+}
+
+__attribute((operator %))
+int operatorBinary5(struct E e1, struct E e2, int b) {   // expected-error {{overloaded 'operatorBinary5' must be a binary operator (has 3 parameters)}}
+    return e1.a - e2.a;
+}
+
+__attribute((operator []))
+int * operatorBinary6() {                             // expected-error {{overloaded function 'operatorBinary6' first parameter or return type must be struct or enumeration pointer type}}
+    return &a;
+}
+
+__attribute((operator []))
+int * operatorBinary7(struct F e1) {                  // expected-error {{overloaded function 'operatorBinary7' first parameter or return type must be struct or enumeration pointer type}}
+    return e1.a;
+}
+
+__attribute((operator []))
+int * operatorBinary8(struct F e1, int a) {           // expected-error {{overloaded function 'operatorBinary8' first parameter or return type must be struct or enumeration pointer type}}
+    return e1.a;
+}
+
+__attribute((operator []))
+int * operatorBinary9(struct F *e1, int a, int b) {      // expected-error {{overloaded 'operatorBinary9' must be a binary operator (has 3 parameters)}}
+    return e1->a;
+}

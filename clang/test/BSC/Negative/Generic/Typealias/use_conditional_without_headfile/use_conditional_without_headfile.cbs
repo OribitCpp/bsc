@@ -1,0 +1,6 @@
+// RUN: %clang_cc1  -verify %s
+
+int main() {
+    conditional<5, int, float> a;  //expected-error{{expected ';' after expression}} expected-error{{use of undeclared identifier 'conditional'}} expected-error{{use of undeclared identifier 'a'}}
+    return 0;
+}

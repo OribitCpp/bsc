@@ -1,0 +1,51 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// RUN: %clang -rewrite-bsc -line %s -o %t-rwline.c
+// RUN: FileCheck --input-file=%t-rwline.c %s --check-prefix=CHECK-L
+
+owned struct A<T> {
+public:
+    T z;
+    T foo(T a) {
+        return a;
+    }
+};
+
+// CHECK-L: #line 13 "{{.*}}.cbs"
+int main() {
+    char y = 's';
+    A<char> aaa = {y};
+    A<char>::foo(1);
+    return 0;
+}
+
+
+// CHECK: struct A_char {
+// CHECK-NEXT:    char z;
+// CHECK-NEXT:};
+// CHECK-EMPTY:
+// CHECK-NEXT:static char struct_A_char_foo(char a);
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_A_char_D( struct A_char this);
+// CHECK-EMPTY:
+// CHECK-NEXT:int main(void) {
+// CHECK-NEXT:    char y = 's';
+// CHECK-NEXT:     struct A_char aaa = {y};
+// CHECK-NEXT:    _Bool aaa_is_moved = 0;
+// CHECK-NEXT:    struct_A_char_foo(1);
+// CHECK-NEXT:    if (!aaa_is_moved)
+// CHECK-NEXT:        struct_A_char_D(aaa);
+// CHECK-NEXT:    return 0;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static char struct_A_char_foo(char a) {
+// CHECK-NEXT:    return a;
+// CHECK-NEXT:}
+// CHECK-EMPTY:
+// CHECK-NEXT:static void struct_A_char_D( struct A_char this) {
+// CHECK-NEXT:    _Bool this_is_moved = 0;
+// CHECK-NEXT:}

@@ -1,0 +1,27 @@
+// RUN: %clang_cc1 -verify %s
+
+owned struct S { 
+public:
+  int a;
+};
+
+trait T { 
+};
+
+impl trait T for S;
+
+void test1(S* sp) {
+  trait T* t = sp;
+}
+
+void test2(S* owned sp) {
+  trait T* owned t = sp;
+} // expected-error {{field memory leak of value: `t`, t.data is leak}}
+
+void test3(S* sp) {
+  trait T* owned t = sp; // expected-error {{incompatible owned types, cannot cast 'owned struct S *' to 'trait T *owned'}}
+}
+
+void test4(S* owned sp) {
+  trait T* t = sp; // expected-error {{incompatible owned types, cannot cast 'owned struct S *owned' to 'trait T *'}}
+}

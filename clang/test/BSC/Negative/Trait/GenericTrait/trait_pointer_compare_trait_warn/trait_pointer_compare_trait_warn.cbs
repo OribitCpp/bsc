@@ -1,0 +1,84 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+
+trait F<T> {
+    T foo(This* this);
+};
+
+trait G<T> {
+    T goo(This* this);
+};
+
+trait H<T> {
+    T hoo(This* this);
+};
+
+int int::foo(int *this) {
+    return 2;
+};
+
+int int::goo(int *this) {
+    return 1;
+};
+
+double double::hoo(double *this) {
+    return 1.0;
+};
+
+impl trait F<int> for int;
+impl trait G<int> for int;
+impl trait H<double> for double;
+
+int diffTraitCompareOnlyDataEqual() {
+    int a = 1;
+    int b = 1;
+    trait F<int>* f = &a;
+    trait G<int>* g = &b;
+    if (f == g) { // expected-warning {{comparison of distinct pointer types ('trait F<int> *' and 'trait G<int> *')}}
+        return 1;
+    }
+    if (f != g) { // expected-warning {{comparison of distinct pointer types ('trait F<int> *' and 'trait G<int> *')}}
+        return 0;
+    }
+    return 1;
+}
+
+int diffTraitCompareNotEqual() {
+    int a = 1;
+    double b = 1.0;
+    trait F<int>* f = &a;
+    trait H<double>* h = &b;
+    if (f == h) { // expected-warning {{comparison of distinct pointer types ('trait F<int> *' and 'trait H<double> *')}}
+        return 1;
+    }
+    if (f != h) { // expected-warning {{comparison of distinct pointer types ('trait F<int> *' and 'trait H<double> *')}}
+        return 0;
+    }
+    return 1;
+}
+
+int diffTraitCompareEqual() {
+    trait F<int>* f = ((void *)0);
+    trait H<double>* h = ((void *)0);
+    if (f != h) { // expected-warning {{comparison of distinct pointer types ('trait F<int> *' and 'trait H<double> *')}}
+        return 1;
+    }
+    if (f == h) { // expected-warning {{comparison of distinct pointer types ('trait F<int> *' and 'trait H<double> *')}}
+       return 0;
+    }
+    return 1;
+}
+
+int main() {
+    if (diffTraitCompareOnlyDataEqual()) {
+        return 1;
+    }
+    if (diffTraitCompareNotEqual()) {
+        return 1;
+    }
+    if (diffTraitCompareEqual()) {
+        return 1;
+    }
+    return 0;
+}

@@ -1,0 +1,24 @@
+// RUN: %clang_cc1 -internal-isystem %S/../../../../../../../lib/Headers/bsc_include -verify %s 
+
+#include "../../../async-func-read-opposite.hbs"
+
+static async int f(int start); // expected-error {{async function does not support static declaration}} 
+
+async int test() {
+  return 42;
+}
+
+async int g() {
+  int tmp = await f(3);
+  return 42;
+}
+
+static async int f(int start) {
+  start = 3;
+  int a = await test();
+  return a + start;
+}
+
+int main() {
+  return 0;
+}

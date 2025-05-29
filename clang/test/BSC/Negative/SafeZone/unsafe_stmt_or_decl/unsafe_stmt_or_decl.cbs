@@ -1,0 +1,53 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+safe int main(void) {
+  int a;  // expected-error {{uninitialized declarator is forbidden in the safe zone}}
+  a = 0;
+  lab:
+  if (a < 10) {
+    a = a + 1;
+    goto lab;
+  }
+  switch (a) {
+    int b = 1; // expected-error {{variable declaration in the top-level switch block is forbidden in the safe zone}}
+    case 0: {
+      int c = 1;  // ok
+      break;
+    }
+    {
+      case 1:     // expected-error {{case statement not in top-level switch block is forbidden in the safe zone}}
+        break; 
+    }
+    {   
+      {
+        case 2:     // expected-error {{case statement not in top-level switch block is forbidden in the safe zone}}
+        case 3:     // expected-error {{case statement not in top-level switch block is forbidden in the safe zone}}
+          break;
+      }
+    }
+    case 4:             // ok
+      break;
+    case 5: {
+      int d = 1;
+      switch (d) {
+        case 1:     // ok
+          break;
+        {
+          case 2: // expected-error {{case statement not in top-level switch block is forbidden in the safe zone}}
+          break;
+        }
+        default:    // ok
+          break;
+      }
+      break;
+    }
+    {
+      default:       // expected-error {{default statement not in top-level switch block is forbidden in the safe zone}}
+        break;
+    }
+  }
+  long ret = 0;
+  long src = 1;
+  asm("move %0, %1\n\t" :"=r"(ret) :"r"(src));   // expected-error {{asm statement is forbidden in the safe zone}}
+  return 0;
+}

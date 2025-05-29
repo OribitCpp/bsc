@@ -1,0 +1,128 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %S/../../../../../../../../lib/Headers/bsc_include/future.hbs -o %T/future.h
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+#include "future.hbs"
+#include <stdlib.h>
+
+async int read(int a) {
+  return 0;
+}
+
+async int getData() {
+  int res = 0;
+  if (res == 0) {
+    int start = await read(2);
+    int a = 3;
+    if (a == 3) {
+      int start = await read(3);
+    }
+  } else {
+    int start = await read(2);
+    int a = 3;
+    if (a == 3) {
+      int start = await read(3);
+    }
+  }
+  return res;
+}
+
+int main() {
+  trait Future<int>* this = getData();
+  this->poll();
+  this->free();
+  return 0;
+}
+
+// CHECK:struct _FuturegetData {
+// CHECK-NEXT:      int res;
+// CHECK-NEXT:      int start;
+// CHECK-NEXT:      int a;
+// CHECK-NEXT:      int start_1;
+// CHECK-NEXT:      int start_2;
+// CHECK-NEXT:      int a_1;
+// CHECK-NEXT:      int start_3;
+// CHECK-NEXT:      struct __Trait_Future_int Ft_1;
+// CHECK-NEXT:      struct __Trait_Future_int Ft_2;
+// CHECK-NEXT:      struct __Trait_Future_int Ft_3;
+// CHECK-NEXT:      struct __Trait_Future_int Ft_4;
+// CHECK-NEXT:      int __future_state;
+// CHECK-NEXT:  };
+
+// CHECK:struct PollResult_int struct__FuturegetData_poll(struct _FuturegetData *this) {
+// CHECK-NEXT:      switch (this->__future_state) {
+// CHECK-NEXT:        case 0:
+// CHECK-NEXT:          goto __L0;
+// CHECK-NEXT:        case 1:
+// CHECK-NEXT:          goto __L1;
+// CHECK-NEXT:        case 2:
+// CHECK-NEXT:          goto __L2;
+// CHECK-NEXT:        case 3:
+// CHECK-NEXT:          goto __L3;
+// CHECK-NEXT:        case 4:
+// CHECK-NEXT:          goto __L4;
+// CHECK-NEXT:      }
+// CHECK-NEXT:    __L0:
+// CHECK-NEXT:      ;
+// CHECK-NEXT:      this->res = 0;
+// CHECK-NEXT:      if (this->res == 0) {
+// CHECK-NEXT:          this->Ft_1 = read(2);
+// CHECK-NEXT:        __L1:
+// CHECK-NEXT:          ;
+// CHECK-NEXT:          int Res_1;
+// CHECK-NEXT:          struct PollResult_int PR_1 = this->Ft_1.vtable->poll(this->Ft_1.data);
+// CHECK-NEXT:          if (struct_PollResult_int_is_completed(&PR_1, &Res_1)) {
+// CHECK-NEXT:          } else {
+// CHECK-NEXT:              this->__future_state = 1;
+// CHECK-NEXT:              return struct_PollResult_int_pending();
+// CHECK-NEXT:          }
+// CHECK-NEXT:          this->start = Res_1;
+// CHECK-NEXT:          this->a = 3;
+// CHECK-NEXT:          if (this->a == 3) {
+// CHECK-NEXT:              this->Ft_2 = read(3);
+// CHECK-NEXT:            __L2:
+// CHECK-NEXT:              ;
+// CHECK-NEXT:              int Res_2;
+// CHECK-NEXT:              struct PollResult_int PR_2 = this->Ft_2.vtable->poll(this->Ft_2.data);
+// CHECK-NEXT:              if (struct_PollResult_int_is_completed(&PR_2, &Res_2)) {
+// CHECK-NEXT:              } else {
+// CHECK-NEXT:                  this->__future_state = 2;
+// CHECK-NEXT:                  return struct_PollResult_int_pending();
+// CHECK-NEXT:              }
+// CHECK-NEXT:              this->start_1 = Res_2;
+// CHECK-NEXT:          }
+// CHECK-NEXT:      } else {
+// CHECK-NEXT:          this->Ft_3 = read(2);
+// CHECK-NEXT:        __L3:
+// CHECK-NEXT:          ;
+// CHECK-NEXT:          int Res_3;
+// CHECK-NEXT:          struct PollResult_int PR_3 = this->Ft_3.vtable->poll(this->Ft_3.data);
+// CHECK-NEXT:          if (struct_PollResult_int_is_completed(&PR_3, &Res_3)) {
+// CHECK-NEXT:          } else {
+// CHECK-NEXT:              this->__future_state = 3;
+// CHECK-NEXT:              return struct_PollResult_int_pending();
+// CHECK-NEXT:          }
+// CHECK-NEXT:          this->start_2 = Res_3;
+// CHECK-NEXT:          this->a_1 = 3;
+// CHECK-NEXT:          if (this->a_1 == 3) {
+// CHECK-NEXT:              this->Ft_4 = read(3);
+// CHECK-NEXT:            __L4:
+// CHECK-NEXT:              ;
+// CHECK-NEXT:              int Res_4;
+// CHECK-NEXT:              struct PollResult_int PR_4 = this->Ft_4.vtable->poll(this->Ft_4.data);
+// CHECK-NEXT:              if (struct_PollResult_int_is_completed(&PR_4, &Res_4)) {
+// CHECK-NEXT:              } else {
+// CHECK-NEXT:                  this->__future_state = 4;
+// CHECK-NEXT:                  return struct_PollResult_int_pending();
+// CHECK-NEXT:              }
+// CHECK-NEXT:              this->start_3 = Res_4;
+// CHECK-NEXT:          }
+// CHECK-NEXT:      }
+// CHECK-NEXT:      this->__future_state = -1;
+// CHECK-NEXT:      int __RES_RETURN = this->res;
+// CHECK-NEXT:      return struct_PollResult_int_completed(__RES_RETURN);
+// CHECK-NEXT:  }

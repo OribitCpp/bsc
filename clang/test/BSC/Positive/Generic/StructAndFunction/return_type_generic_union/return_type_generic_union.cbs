@@ -1,0 +1,21 @@
+// RUN: %clang %s -o %t.output
+// RUN: %t.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+// expected-no-diagnostics
+
+union MyUnion<T1, T2> {
+  T1 res1;
+  T2 res2;
+};
+
+union MyUnion<T1, T2> foo<T1, T2>(union MyUnion<T1, T2> *this) {
+  return *this;
+}
+
+int main() {
+  union MyUnion<int, float> p;
+  foo(&p);
+  return 0;  
+}

@@ -1,0 +1,14 @@
+// RUN: %clang_cc1 -verify %s
+
+owned struct S {
+public:
+	int *a;
+	short *b;
+};
+
+int main() {
+	short b = 5;
+	S s1;
+	s1.b = &b; // expected-error {{assign to part of uninitialized value: `s1`}}
+	return 0;
+}

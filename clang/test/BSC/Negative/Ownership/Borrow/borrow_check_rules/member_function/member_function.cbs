@@ -1,0 +1,38 @@
+// RUN: %clang_cc1 -verify %s
+
+struct A {
+  int m;
+  int n;
+  int c;
+};
+
+void int::setA(int *this);
+void use_mut(int *borrow);
+void use_const(const int *borrow);
+void use_mut_A(struct A *borrow);
+
+void struct A::use(struct A *this) {
+  this->m = 2;
+  this->n = 3;
+}
+
+void test1() {
+  int a = 1;
+  int *borrow p = &mut a; // expected-note {{`a` is borrowed here}}
+  a.setA(); // expected-error {{cannot use `a` because it was mutably borrowed}}
+  use_mut(p);
+}
+
+// FIXME: not proper now
+void test2() {
+  int a = 1;
+  const int *borrow p = &const a;
+  a.setA();
+  use_const(p);
+}
+
+void test3(struct A a) {
+  struct A *borrow p = &mut a; // expected-note {{`a` is borrowed here}}
+  a.use(); // expected-error {{cannot use `a` because it was mutably borrowed}}
+  use_mut_A(p);
+}

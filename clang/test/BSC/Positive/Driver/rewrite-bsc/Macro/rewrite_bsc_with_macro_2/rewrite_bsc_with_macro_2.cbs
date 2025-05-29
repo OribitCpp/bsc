@@ -1,0 +1,27 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -I %S -o %t-rw.output
+// RUN: %t-rw.output
+
+#include "rewrite_bsc_with_macro_2.h"
+#include "stdbool.h"
+
+static inline void f() {
+    if (BSC_LIKELY(true)) {}
+}
+
+int main() {
+    return 0;
+}
+
+// CHECK:      #include "rewrite_bsc_with_macro_2.h"
+// CHECK-NEXT: #include "stdbool.h"
+// CHECK-EMPTY: 
+// CHECK-EMPTY: 
+// CHECK-NEXT: static inline void f() {
+// CHECK-NEXT:     if (BSC_LIKELY(true)) {}
+// CHECK-NEXT: }
+// CHECK-EMPTY: 
+// CHECK-NEXT: int main() {
+// CHECK-NEXT:     return 0;
+// CHECK-NEXT: }

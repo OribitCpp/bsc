@@ -1,0 +1,15 @@
+// RUN: %clang_cc1 -verify %s
+
+struct A {
+    int a;
+}; 
+
+int main() { // expected-note {{previous definition is here}}
+
+    struct A* c;
+    return 0;
+} 
+
+int main // expected-error {{redefinition of 'main' as different kind of symbol}}
+         // expected-warning@-1 {{variable named 'main' with external linkage has undefined behavior}}
+         // expected-error@-2 {{expected ';' after top level declarator}}

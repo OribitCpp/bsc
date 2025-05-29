@@ -1,0 +1,77 @@
+// RUN: %clang_cc1 -verify %s
+
+typedef struct G {
+  int a;
+} G;
+
+struct S {
+  G g;
+};
+
+struct K {
+  G *g;
+};
+
+struct M {
+  struct S *borrow ps;
+  struct K *borrow pk;
+};
+
+void use(int *borrow p) {}
+void useM(struct M m) {}
+
+void test1() {
+  G g = { .a = 1 };
+  int *borrow p1 = &mut g.a; // expected-note {{`g.a` is borrowed here}}
+  g.a = 5; // expected-error {{cannot assign to `g.a` because it is borrowed}}
+  use(p1);
+}
+
+void test2() {
+  G g;
+  G *pg = &g;
+  int *borrow p2 = &mut pg->a; // expected-note {{`(*pg).a` is borrowed here}}
+  pg->a = 5; // expected-error {{cannot assign to `(*pg).a` because it is borrowed}}
+  use(p2); 
+}
+
+void test3() {
+  G g;
+  G *pg = &g;
+  int *borrow p1 = &mut g.a; // expected-note {{`g.a` is borrowed here}}
+  int *borrow p2 = &mut pg->a; // expected-note {{`(*pg).a` is borrowed here}}
+  g.a = 5; // expected-error {{cannot assign to `g.a` because it is borrowed}}
+  pg->a = 5; // expected-error {{cannot assign to `(*pg).a` because it is borrowed}}
+  use(p1);
+  use(p2);
+}
+
+void test4() {
+  struct S s1;
+  struct S* s = &s1;
+  int *borrow p1 = &mut s->g.a; // expected-note {{`(*s).g.a` is borrowed here}}
+  int *borrow p2 = &mut s1.g.a; // expected-note {{`s1.g.a` is borrowed here}}
+  s->g.a = 5; // expected-error {{cannot assign to `(*s).g.a` because it is borrowed}}
+  s1.g.a = 5; // expected-error {{cannot assign to `s1.g.a` because it is borrowed}}
+  use(p1);
+  use(p2);
+
+  struct K k1;
+  struct K *k = &k1;
+  int *borrow q1 = &mut k->g->a; // expected-note {{`(*(*k).g).a` is borrowed here}}
+  int *borrow q2 = &mut k1.g->a; // expected-note {{`(*k1.g).a` is borrowed here}}
+  k->g->a = 5; // expected-error {{cannot assign to `(*(*k).g).a` because it is borrowed}}
+  k1.g->a = 5; // expected-error {{cannot assign to `(*k1.g).a` because it is borrowed}}
+  use(q1);
+  use(q2);
+}
+
+void test5() {
+  struct S s1; 
+  struct K k1;
+  struct M m = { .ps = &mut s1, .pk = &mut k1 }; // expected-note {{`s1.g.a` is borrowed here}}
+                                                 // expected-note@-1 {{`(*k1.g).a` is borrowed here}}
+  s1.g.a = 5; // expected-error {{cannot assign to `s1.g.a` because it is borrowed}}
+  k1.g->a = 5; // expected-error {{cannot assign to `(*k1.g).a` because it is borrowed}}
+  useM(m);
+}

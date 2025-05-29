@@ -1,0 +1,30 @@
+// RUN: %clang %s -o %test.output
+// RUN: %test.output
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: %clang %t-rw.c -o %t-rw.output
+// RUN: %t-rw.output
+int y  = 0;
+owned struct B{
+    ~B(B this){
+       y=y+2;
+    }
+};
+owned struct A {
+public:
+  ~A( A this) {
+    y++;
+  }
+};
+
+owned struct C<T> {
+    ~C( C<T> this) {
+    y++;
+  }
+};
+
+int main() {
+  static C<int> c = {};
+  static B b ={};
+  A a ={};
+  return y-1;
+}

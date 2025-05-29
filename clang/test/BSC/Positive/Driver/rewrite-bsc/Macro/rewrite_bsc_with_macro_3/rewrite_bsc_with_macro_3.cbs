@@ -1,0 +1,23 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -I %S -o %t-rw.output
+// RUN: %t-rw.output
+
+#include "rewrite_bsc_with_macro_3.h"
+
+Bool a = false;
+
+int main() {
+  Bool x = a;
+  return 0;
+}
+
+// CHECK:      #include "rewrite_bsc_with_macro_3.h"
+// CHECK-EMPTY: 
+// CHECK-EMPTY: 
+// CHECK-NEXT: _Bool a = 0;
+// CHECK-EMPTY: 
+// CHECK-NEXT: int main() {
+// CHECK-NEXT:   Bool x = a;
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }

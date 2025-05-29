@@ -1,0 +1,20 @@
+// RUN: %clang_cc1 -fsyntax-only -verify %s
+
+trait F{};
+void foo1(trait F f);  // expected-error {{only trait pointer type is allowed to be declared}}
+trait F foo2(trait F f) {  // expected-error {{only trait pointer type is allowed to be declared}} // expected-error {{only trait pointer type is allowed to be declared}}
+    trait F f1 = f; // expected-error {{only trait pointer type is allowed to be declared}}
+    return f1; // expected-error {{use of undeclared identifier 'f1'}}
+}
+void (*call1)(trait F f); // expected-error {{only trait pointer type is allowed to be declared}}
+void int::foo3(int* this, trait F f); // expected-error {{only trait pointer type is allowed to be declared}}
+
+trait G<T> {};
+void foo4(trait G<T> g); // expected-error {{use of undeclared identifier 'T'}}
+void foo5<T>(trait G<T> g); // expected-error {{only trait pointer type is allowed to be declared}}
+void(*call2)(trait G<T> g); // expected-error {{use of undeclared identifier 'T'}}
+void int::foo6(int* this, trait G<T> g);  // expected-error {{use of undeclared identifier 'T'}}
+
+void foo7(trait G<int> g);  // expected-error {{only trait pointer type is allowed to be declared}}
+void (*call3)(trait G<int> g); // expected-error {{only trait pointer type is allowed to be declared}}
+void int::foo8(int* this, trait G<int> g); // expected-error {{only trait pointer type is allowed to be declared}}

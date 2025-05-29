@@ -1,0 +1,9 @@
+
+
+struct S<T, R>{
+};
+
+struct S<T, R>* newS<T, R>(T a) {
+  struct S<T, R>* r = malloc(sizeof(struct S<T, R>));
+  return r;
+}

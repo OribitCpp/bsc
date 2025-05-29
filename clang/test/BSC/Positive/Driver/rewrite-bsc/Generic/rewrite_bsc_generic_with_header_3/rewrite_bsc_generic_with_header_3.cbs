@@ -1,0 +1,123 @@
+// RUN: %clang -rewrite-bsc %s -o %t-rw.c
+// RUN: FileCheck --input-file=%t-rw.c %s
+// RUN: %clang %t-rw.c -I%S -o %t-rw.output
+// RUN: %t-rw.output
+
+#include <sys/epoll.h>
+#include <string.h>
+#include "rewrite_bsc_generic_with_header_3.hbs"
+
+typedef struct BSCGenericStruct<int> TBSCGSI;
+
+struct CBSGenericFieldStruct {
+  TBSCGSI a;
+};
+
+typedef struct CBSGenericFieldStruct CBSGFS;
+
+struct CBSStruct {
+  int a;
+  int b;
+};
+
+enum CBSEnum {
+  FIRST,
+  SECOND,
+  DIGIT_END
+};
+
+typedef enum E {
+  TFIRST,
+  TSECOND,
+  TDIGIT_END
+} CBSTEnum;
+
+enum {
+  ANONFIRST,
+  ANONSECOND,
+  ANONDIGIT_END
+};
+
+int main() {
+  int anon = ANONFIRST;
+  use();
+  return 0;
+}
+
+// CHECK:      #include "user_header.h"
+// CHECK-NEXT: #include <memory.h>
+// CHECK-NEXT: #include <stdio.h>
+// CHECK-NEXT: #include <string.h>
+// CHECK-NEXT: #include <sys/epoll.h>
+// CHECK-EMPTY:
+// CHECK-EMPTY:
+// CHECK-NEXT: struct BSCGenericStruct_int;
+// CHECK-NEXT: struct UserHBSStruct;
+// CHECK-NEXT: struct CBSGenericFieldStruct;
+// CHECK-NEXT: struct CBSStruct;
+// CHECK-NEXT: enum UserHBSEnum {
+// CHECK-NEXT:   UFIRST,
+// CHECK-NEXT:   USECOND,
+// CHECK-NEXT:   UDIGIT_END
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: typedef struct BSCGenericStruct_int TBSCGSI;
+// CHECK-EMPTY:
+// CHECK-NEXT: typedef struct CBSGenericFieldStruct CBSGFS;
+// CHECK-EMPTY:
+// CHECK-NEXT: enum CBSEnum {
+// CHECK-NEXT:   FIRST,
+// CHECK-NEXT:   SECOND,
+// CHECK-NEXT:   DIGIT_END
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: enum E {
+// CHECK-NEXT:   TFIRST,
+// CHECK-NEXT:   TSECOND,
+// CHECK-NEXT:   TDIGIT_END
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: typedef enum E CBSTEnum;
+// CHECK-EMPTY:
+// CHECK-NEXT: enum {
+// CHECK-NEXT:   ANONFIRST,
+// CHECK-NEXT:   ANONSECOND,
+// CHECK-NEXT:   ANONDIGIT_END
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct UserHBSStruct {
+// CHECK-NEXT:   int a;
+// CHECK-NEXT:   int b;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct BSCGenericStruct_int {
+// CHECK-NEXT:   int t;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct CBSStruct {
+// CHECK-NEXT:   int a;
+// CHECK-NEXT:   int b;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: struct CBSGenericFieldStruct {
+// CHECK-NEXT:   TBSCGSI a;
+// CHECK-NEXT: };
+// CHECK-EMPTY:
+// CHECK-NEXT: static struct BSCGenericStruct_int init_int(int t);
+// CHECK-EMPTY:
+// CHECK-NEXT: int x = 1;
+// CHECK-EMPTY:
+// CHECK-NEXT: static void use(void) {
+// CHECK-NEXT:   struct BSCGenericStruct_int s = init_int(1);
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: int main() {
+// CHECK-NEXT:   int anon = ANONFIRST;
+// CHECK-NEXT:   use();
+// CHECK-NEXT:   return 0;
+// CHECK-NEXT: }
+// CHECK-EMPTY:
+// CHECK-NEXT: static struct BSCGenericStruct_int init_int(int t) {
+// CHECK-NEXT:   struct BSCGenericStruct_int s = {t};
+// CHECK-NEXT:   return s;
+// CHECK-NEXT: }
