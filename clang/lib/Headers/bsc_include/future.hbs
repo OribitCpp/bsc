@@ -1,0 +1,35 @@
+#ifndef _BSCFUTURE_HBS
+#define _BSCFUTURE_HBS  1
+
+struct PollResult<T> {
+    _Bool isPending;
+    T res;
+};
+
+T struct PollResult<T>::is_pending(struct PollResult<T>* this) {
+    return this->isPending;
+}
+
+struct PollResult<T> struct PollResult<T>::pending() {
+    struct PollResult<T> this;
+    this.isPending = 1;
+    return this;
+}
+
+_Bool struct PollResult<T>::is_completed(struct PollResult<T> *this, T *out)     {
+    *out = this->res;
+    return !this->isPending;
+}
+
+struct PollResult<T> struct PollResult<T>::completed(T result)     {
+    struct PollResult<T> this;
+    this.isPending = 0;
+    this.res = result;
+    return this;
+}
+
+trait Future<T> {
+    struct PollResult<T> poll(This* this);
+    void free(This* this);
+};
+#endif /* future.hbs */

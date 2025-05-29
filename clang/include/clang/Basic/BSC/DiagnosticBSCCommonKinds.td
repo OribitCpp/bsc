@@ -1,0 +1,1 @@
+def err_unsafe_action : Error<"%0 is forbidden in the safe zone">;
