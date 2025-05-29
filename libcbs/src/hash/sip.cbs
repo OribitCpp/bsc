@@ -1,0 +1,184 @@
+#include "sip.hbs"
+#include <string.h>
+#include <time.h>
+
+_Bool int::equals(const int* borrow this, const int* borrow other) {
+    return *this == *other;
+}
+
+_Bool unsigned int::equals(const unsigned int* borrow this, const unsigned int* borrow other) {
+    return *this == *other;
+}
+
+_Bool long::equals(const long* borrow this, const long* borrow other) {
+    return *this == *other;
+}
+
+_Bool unsigned long::equals(const unsigned long* borrow this, const unsigned long* borrow other) {
+    return *this == *other;
+}
+
+_Bool short::equals(const short* borrow this, const short* borrow other) {
+    return *this == *other;
+}
+
+_Bool unsigned short::equals(const unsigned short* borrow this, const unsigned short* borrow other) {
+    return *this == *other;
+}
+
+_Bool char::equals(const char* borrow this, const char* borrow other) {
+    return *this == *other;
+}
+
+_Bool unsigned char::equals(const unsigned char* borrow this, const unsigned char* borrow other) {
+    return *this == *other;
+}
+
+_Bool long long::equals(const long long* borrow this, const long long* borrow other) {
+    return *this == *other;
+}
+
+_Bool unsigned long long::equals(const unsigned long long* borrow this, const unsigned long long* borrow other) {
+    return *this == *other;
+}
+
+RandomState RandomState::new() {
+    srand((unsigned)time(NULL));
+    uint64_t k0 = ((uint64_t)rand() << 32) | rand();
+    uint64_t k1 = ((uint64_t)rand() << 32) | rand();
+    RandomState rs = { k0, k1 };
+    return rs;
+}
+
+static void compress(State* state) {
+    state->v0 += state->v1;
+    state->v1 = (state->v1 << 13) | (state->v1 >> (64 - 13));
+    state->v1 ^= state->v0;
+
+    state->v0 = (state->v0 << 13) | (state->v0 >> (64 - 32));
+
+    state->v2 += state->v3;
+    state->v3 = (state->v3 << 16) | (state->v3 >> (64 - 16));
+    state->v3 ^= state->v2;
+
+    state->v0 += state->v3;
+    state->v3 = (state->v3 << 21) | (state->v3 >> (64 - 21));
+    state->v3 ^= state->v0;
+
+    state->v2 += state->v1;
+    state->v1 = (state->v1 << 17) | (state->v1 >> (64 - 17));
+    state->v1 ^= state->v2;
+
+    state->v2 = (state->v2 << 32) | (state->v2 >> (64 - 32));
+}
+
+static void c_rounds(State* state) {
+    compress(state);
+}
+
+static void d_rounds(State* state) {
+    compress(state);
+    compress(state);
+    compress(state);
+}
+
+static uint64_t SipHasher13::finish(const SipHasher13* borrow this) {
+    State state = this->state;
+
+    uint64_t b = ((((uint64_t)this->length) & 0xff) << 56) | this->tail;
+
+    state.v3 ^= b;
+    c_rounds(&state);
+    state.v0 ^= b;
+
+    state.v2 ^= 0xff;
+    d_rounds(&state);
+
+    return state.v0 ^ state.v1 ^ state.v2 ^ state.v3;
+}
+
+static void SipHasher13::reset(SipHasher13* borrow this) {
+    this->length = 0;
+    this->state.v0 = this->k0 ^ 0x736f6d6570736575;
+    this->state.v1 = this->k1 ^ 0x646f72616e646f6d;
+    this->state.v2 = this->k0 ^ 0x6c7967656e657261;
+    this->state.v3 = this->k1 ^ 0x7465646279746573;
+    this->ntail = 0;
+}
+
+SipHasher13 SipHasher13::new() {
+    return SipHasher13::new_with_keys(0, 0);
+}
+
+SipHasher13 SipHasher13::new_with_keys(uint64_t key0, uint64_t key1) {
+    SipHasher13 sh13 = {
+        .k0 = key0,
+        .k1 = key1,
+        .length = 0,
+        .state = { .v0 = 0, .v1 = 0, .v2 = 0, .v3 = 0 },
+        .tail = 0,
+        .ntail = 0
+    };
+    sh13.reset();
+    return sh13;
+}
+
+uint64_t int::hash(const int* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(int) > 8 ? 8 : sizeof(int);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}
+
+uint64_t unsigned int::hash(const unsigned int* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(unsigned int) > 8 ? 8 : sizeof(unsigned int);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}
+
+uint64_t long::hash(const long* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(long) > 8 ? 8 : sizeof(long);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}
+
+uint64_t unsigned long::hash(const unsigned long* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(unsigned long) > 8 ? 8 : sizeof(unsigned long);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}
+
+uint64_t short::hash(const short* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(short) > 8 ? 8 : sizeof(short);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}
+
+uint64_t unsigned short::hash(const unsigned short* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(unsigned short) > 8 ? 8 : sizeof(unsigned short);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}
+
+uint64_t char::hash(const char* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(char) > 8 ? 8 : sizeof(char);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}
+
+uint64_t unsigned char::hash(const unsigned char* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(unsigned char) > 8 ? 8 : sizeof(unsigned char);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}
+
+uint64_t long long::hash(const long long* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(long long) > 8 ? 8 : sizeof(long long);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}
+
+uint64_t unsigned long long::hash(const unsigned long long* borrow this, SipHasher13* borrow sh) {
+    size_t count = sizeof(unsigned long long) > 8 ? 8 : sizeof(unsigned long long);
+    memcpy(&sh->k0, this, count);
+    return sh->finish();
+}

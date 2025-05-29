@@ -1,0 +1,126 @@
+#ifndef BISHENG_C_SAFETY_RESULT_H
+#define BISHENG_C_SAFETY_RESULT_H
+
+#include "bishengc_safety.hbs"
+#include <bsc_type_traits.hbs>
+#include <string.h>
+
+typedef enum {
+    Ok,
+    Err
+} ResultState;
+
+// Error handling with the `Result` type.
+//
+// `Result` is the type used for returning and propagating
+// errors. The `Ok` represents success and contains a value,
+// and the `Err` represents error and contains an error value.
+owned struct Result<T, E> {
+// FIXME: makes it private later
+public:
+    ResultState state;
+    char t[sizeof(T)];
+    char e[sizeof(E)];
+
+    ~Result(Result<T, E> this) {
+        if (this.state == Ok) {
+            T* ptr = (T *)this.t;
+            _BSC_UNUSED T tmp = *ptr;
+            // IF(`T` isa owned struct type) AUTO INSERT: ~T(tmp)
+        } else {
+            E* ptr = (E *)this.e;
+            _BSC_UNUSED E tmp = *ptr;
+            // IF(`E` isa owned struct type) AUTO INSERT: ~E(tmp)
+        }
+    }
+};
+
+// Returns `true` if the result is a `Err` value.
+safe _Bool Result<T, E>::is_err(const Result<T, E>* borrow this) {
+    unsafe {
+        return this->state == Err;
+    }
+}
+
+// Returns `true` if the result is a `Ok` value.
+safe _Bool Result<T, E>::is_ok(const Result<T, E>* borrow this) {
+    unsafe {
+        return this->state == Ok;
+    }
+}
+
+// Creates an `Ok` value.
+safe Result<T, E> Result<T, E>::Ok(T t) {
+    _Static_assert(is_move_semantic<T>() == false || is_owned_struct<T>() == true,
+                    "Can only instantiate Result with owned struct or copyable type, "
+				   	"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap T with an owned struct.");
+    _Static_assert(is_move_semantic<E>() == false || is_owned_struct<E>() == true,
+                    "Can only instantiate Result with owned struct or copyable type, "
+				   	"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap E with an owned struct.");
+    unsafe {
+        Result<T, E> r = {
+            .state = Ok,
+            .t = {0},
+            .e = {0}
+        };
+        memcpy(r.t, (const void *)&t, sizeof(T));
+        forget<T>(t);  // forget value `t` to avoid calling its destructor
+        return r;
+    }
+}
+
+// Creates an `Err` value.
+safe Result<T, E> Result<T, E>::Err(E e) {
+    _Static_assert(is_move_semantic<T>() == false || is_owned_struct<T>() == true,
+                    "Can only instantiate Result with owned struct or copyable type, "
+				    "because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap T with an owned struct.");
+    _Static_assert(is_move_semantic<E>() == false || is_owned_struct<E>() == true,
+                    "Can only instantiate Result with owned struct or copyable type, "
+				   	"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap E with an owned struct.");
+    unsafe {
+        Result<T, E> r = {
+            .state = Err,
+            .t = {0},
+            .e = {0}
+        };
+        memcpy(r.e, (const void *)&e, sizeof(E));
+        forget<E>(e);  // forget value `e` to avoid calling its destructor
+        return r;
+    }
+}
+
+// Returns the contained `Ok` value, consuming the `result` value.
+//
+// Aborts if the `result` value equals `Err`.
+safe T result_unwrap<T, E>(Result<T, E> result) {
+    if (result.is_err()) {
+        bsc_unwrap_failed();
+    }
+    unsafe {
+        T* ptr = (T *_Nonnull)result.t;
+        T t = *ptr;
+        forget<Result<T, E>>(result); // forget value `result` to avoid calling its destructor
+        return t;
+    }
+}
+
+// Returns the contained `Err` value, consuming the `result` value.
+//
+// Aborts if the `result` value equals `Ok`.
+safe E result_unwrap_err<T, E>(Result<T, E> result) {
+    if (result.is_ok()) {
+        bsc_unwrap_failed();
+    }
+    unsafe {
+        E* ptr = (E *_Nonnull)result.e;
+        E e = *ptr;
+        forget<Result<T, E>>(result); // forget value `result` to avoid calling its destructor
+        return e;
+    }
+}
+
+#endif

@@ -1,0 +1,107 @@
+#ifndef BISHENG_C_QUEUE_H
+#define BISHENG_C_QUEUE_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <pthread.h>
+#include <stdbool.h>
+
+struct Queue<T> {
+    unsigned int writeIndex;
+    unsigned int readIndex;
+    unsigned int count;
+    unsigned int capacity;
+    T * buf;
+    pthread_mutex_t mutex;
+};
+
+void struct Queue<T>::push(struct Queue<T> *this, T value) {
+    pthread_mutex_lock(&this->mutex);
+    this->buf[this->writeIndex] = value;
+    if ((this->writeIndex + 1) % this->capacity == this->readIndex) {
+        this->writeIndex = this->capacity;
+        this->readIndex = 0;
+        this->capacity = 2 * this->capacity;
+        this->buf = realloc(this->buf, sizeof(void *) * this->capacity);
+        if (this->buf == NULL) {
+            fprintf(stderr, "Error: expand capacity failed\n");
+            exit(EXIT_FAILURE);
+        }
+        printf("capacity: %d\n", this->capacity);
+    } else {
+        this->writeIndex = (this->writeIndex + 1) % this->capacity;
+    }
+    ++this->count;
+    pthread_mutex_unlock(&this->mutex);
+}
+
+T struct Queue<T>::pop(struct Queue<T> *this) {
+    pthread_mutex_lock(&this->mutex);
+    if (this->count == 0) {
+        pthread_mutex_unlock(&this->mutex);
+        return NULL;
+    }
+    T res = this->buf[this->readIndex];
+    this->readIndex = (this->readIndex + 1) % this->capacity;
+    --this->count;
+    pthread_mutex_unlock(&this->mutex);
+    return res;
+}
+
+void struct Queue<T>::init(struct Queue<T> *this, unsigned int capacity)
+{
+    if (capacity == 0)
+    {
+        fprintf(stderr, "Error: invalid capacity: %d\n", capacity);
+        return;
+    }
+    this->buf = malloc(sizeof(T) * capacity);
+    if (this->buf == NULL)
+    {
+        fprintf(stderr, "Error: maloc failed, size: %lu\n", (sizeof(T) * capacity));
+        return;
+    }
+    int res = pthread_mutex_init(&this->mutex, NULL);
+    if (res != 0) {
+        fprintf(stderr, "Error: phtread mutex init failed\n");
+        exit(EXIT_FAILURE);
+    }
+    this->capacity = capacity;
+    this->readIndex = 0;
+    this->writeIndex = 0;
+    this->count = 0;
+}
+
+void struct Queue<T>::destroy(struct Queue<T> *this)
+{
+    if (this->buf != NULL)
+    {
+        free(this->buf);
+        this->buf = NULL;
+    }
+
+    pthread_mutex_destroy(&this->mutex);
+    this->capacity = 0;
+    this->readIndex = 0;
+    this->writeIndex = 0;
+    this->count = 0;
+}
+
+bool struct Queue<T>::isEmpty(struct Queue<T> *this)
+{
+    pthread_mutex_lock(&this->mutex);
+    int count = this->count;
+    pthread_mutex_unlock(&this->mutex);
+    return count == 0;
+}
+
+bool struct Queue<T>::isFull(struct Queue<T> *this)
+{
+    pthread_mutex_lock(&this->mutex);
+    unsigned int count = this->count;
+    pthread_mutex_unlock(&this->mutex);
+    return count == this->capacity;
+}
+
+#endif

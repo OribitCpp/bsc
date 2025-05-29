@@ -1,0 +1,68 @@
+#ifndef BISHENG_C_SAFETY_SIP_H
+#define BISHENG_C_SAFETY_SIP_H
+
+#include "bishengc_safety.hbs"
+#include <stdint.h>
+
+// The default `equals` function implementation for each built-in type
+_Bool int::equals(const int* borrow this, const int* borrow other);
+_Bool unsigned int::equals(const unsigned int* borrow this, const unsigned int* borrow other);
+_Bool long::equals(const long* borrow this, const long* borrow other);
+_Bool unsigned long::equals(const unsigned long* borrow this, const unsigned long* borrow other);
+_Bool short::equals(const short* borrow this, const short* borrow other);
+_Bool unsigned short::equals(const unsigned short* borrow this, const unsigned short* borrow other);
+_Bool char::equals(const char* borrow this, const char* borrow other);
+_Bool unsigned char::equals(const unsigned char* borrow this, const unsigned char* borrow other);
+_Bool long long::equals(const long long* borrow this, const long long* borrow other);
+_Bool unsigned long long::equals(const unsigned long long* borrow this, const unsigned long long* borrow other);
+
+// `RandomState` is the default state for `HashMap` types.
+//
+// A particular instance `RandomState` will create the same instances of
+// `Hasher`, but the hashers created by two different `RandomState`
+// instances are unlikely to produce the same result for the same values.
+typedef struct RandomState {
+    uint64_t k0;
+    uint64_t k1;
+} RandomState;
+
+// Constructs a new `RandomState` that is initialized with random keys.
+RandomState RandomState::new();
+
+typedef struct State {
+    uint64_t v0;
+    uint64_t v1;
+    uint64_t v2;
+    uint64_t v3;
+} State;
+
+// An implementation of SipHash 1-3.
+//
+// This is currently the default hashing function used by BiShengC standard library
+typedef struct SipHasher13 {
+    uint64_t k0;
+    uint64_t k1;
+    size_t length; // how many bytes we've processed
+    State state;   // hash State
+    uint64_t tail; // unprocessed bytes le
+    size_t ntail;  // how many bytes in tail are valid
+} SipHasher13;
+
+// Creates a new `SipHasher13` with the two initial keys set to 0.
+SipHasher13 SipHasher13::new();
+// Creates a new `SipHasher13` with the two specified initial keys.
+SipHasher13 SipHasher13::new_with_keys(uint64_t key0, uint64_t key1);
+
+// Calculates the hash of a single value.
+uint64_t int::hash(const int* borrow this, SipHasher13* borrow sh);
+uint64_t unsigned int::hash(const unsigned int* borrow this, SipHasher13* borrow sh);
+uint64_t long::hash(const long* borrow this, SipHasher13* borrow sh);
+uint64_t unsigned long::hash(const unsigned long* borrow this, SipHasher13* borrow sh);
+uint64_t short::hash(const short* borrow this, SipHasher13* borrow sh);
+uint64_t unsigned short::hash(const unsigned short* borrow this, SipHasher13* borrow sh);
+uint64_t char::hash(const char* borrow this, SipHasher13* borrow sh);
+uint64_t unsigned char::hash(const unsigned char* borrow this, SipHasher13* borrow sh);
+uint64_t long long::hash(const long long* borrow this, SipHasher13* borrow sh);
+uint64_t unsigned long long::hash(const unsigned long long* borrow this, SipHasher13* borrow sh);
+
+#endif

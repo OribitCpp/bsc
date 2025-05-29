@@ -1,0 +1,42 @@
+#include "bishengc_safety.hbs"
+
+struct S {
+    int* owned a;
+    int* owned b;
+};
+
+void test1() {
+    int a = 2;
+    int* owned ap = safe_malloc(a);
+    safe_free((void* owned)ap);
+    double b = 3.2;
+    double* owned bp = safe_malloc(b);
+    safe_free((void* owned)bp);
+    struct S s = { .a = safe_malloc(3), .b = safe_malloc(5) };
+    struct S* owned sp = safe_malloc(s);
+    safe_free((void* owned)sp->a);
+    safe_free((void* owned)sp->b);
+    safe_free((void* owned)sp);
+}
+
+owned struct Resource {
+public:
+    int * owned value;
+    ~Resource(This this) {
+        safe_free((void * owned)this.value);
+    }
+};
+
+safe void test2(void) {
+    Resource r = { .value = safe_malloc(1) };
+    forget<Resource>(r);
+
+    int *owned p = safe_malloc(1);
+    forget<int *owned>(p);
+}
+
+int main() {
+    test1();
+    test2();
+    return 0;
+}

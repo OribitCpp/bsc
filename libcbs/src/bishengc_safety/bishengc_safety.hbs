@@ -1,0 +1,58 @@
+#ifndef BISHENG_C_SAFETY_H
+#define BISHENG_C_SAFETY_H
+
+#include <stdlib.h>
+
+#define _BSC_UNUSED __attribute__((unused))
+
+typedef void (*BSCBadAllocHandler)(size_t);
+typedef void (*BSCOutOfBoundHandler)(size_t, size_t);
+typedef void (*BSCOverflowHandler)();
+
+extern BSCBadAllocHandler bsc_bad_alloc_handler;
+extern BSCOutOfBoundHandler bsc_out_of_bound_handler;
+extern BSCOverflowHandler bsc_overflow_handler;
+
+void default_bad_alloc_handler(size_t size);
+void default_out_of_bound_handler(size_t len, size_t index);
+void default_overflow_handler();
+void set_bsc_bad_alloc_handler(BSCBadAllocHandler handler);
+
+safe void bsc_unwrap_failed(void);
+
+safe void bsc_refcell_mut_borrow_failed(void);
+safe void bsc_refcell_immut_borrow_failed(void);
+
+safe void safe_free(void * owned p);
+
+// Takes ownership and “forgets” about the value without running its destructor.
+safe void forget<T>(T t) {
+    unsafe {
+        T* forget = &t;
+        *forget = t;
+    }
+}
+
+safe T *owned safe_malloc<T>(T t) {
+    unsafe {
+        T *addr = (T *)malloc(sizeof(T));
+        if (!addr) {
+            addr = &t;
+            forget<T>(t);
+            bsc_bad_alloc_handler(sizeof(T));
+        } else {
+            *addr = t;
+        }
+        return (T *owned)addr;
+    }
+}
+
+safe void safe_swap<T>(T* borrow left, T* borrow right) {
+    unsafe {
+        T tmp = *(T *_Nonnull)left;
+        *left = *(T *_Nonnull)right;
+        *right = tmp;
+    }
+}
+
+#endif

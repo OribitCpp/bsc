@@ -1,0 +1,70 @@
+#include "bishengc_safety.hbs"
+#include <execinfo.h>
+#include <stdio.h>
+
+BSCBadAllocHandler bsc_bad_alloc_handler = default_bad_alloc_handler;
+BSCOutOfBoundHandler bsc_out_of_bound_handler = default_out_of_bound_handler;
+BSCOverflowHandler bsc_overflow_handler = default_overflow_handler;
+
+static void bsc_stack_dump_and_exit() {
+    void *callstack[10];
+    int num_frames = backtrace(callstack, 10);
+    char **symbols = backtrace_symbols(callstack, num_frames);
+
+    fprintf(stderr, "Call stack:\n");
+    for (int i = 0; i < num_frames; i++) {
+        fprintf(stderr, "%s\n", symbols[i]);
+    }
+    free(symbols);
+    exit(EXIT_FAILURE);
+}
+
+void default_bad_alloc_handler(size_t size) {
+    fprintf(stderr, "Error: Failed to allocate %zu bytes of memory.\n", size);
+
+    bsc_stack_dump_and_exit();
+}
+
+void default_out_of_bound_handler(size_t len, size_t index) {
+    fprintf(stderr, "Error: Index out of bound: len is %zu but index is %zu\n", len, index);
+
+    bsc_stack_dump_and_exit();
+}
+
+void default_overflow_handler() {
+    fprintf(stderr, "Error: Integer overflow occurred\n");
+
+    bsc_stack_dump_and_exit();
+}
+
+void set_bsc_bad_alloc_handler(BSCBadAllocHandler handler) {
+	bsc_bad_alloc_handler = handler;
+}
+
+safe void bsc_unwrap_failed(void) {
+    unsafe {
+        fprintf(stderr, "Error: called `unwrap()` on an illegal value\n");
+
+        bsc_stack_dump_and_exit();
+    }
+}
+
+safe void bsc_refcell_mut_borrow_failed(void) {
+    unsafe {
+        fprintf(stderr, "Error: Failed to mut borrow because has been borrowed\n");
+        bsc_stack_dump_and_exit();
+    }
+}
+
+safe void bsc_refcell_immut_borrow_failed(void) {
+    unsafe {
+        fprintf(stderr, "Error: Failed to immut borrow because has been mut borrowed\n");
+        bsc_stack_dump_and_exit();
+    }
+}
+
+safe void safe_free(void * owned p) {
+	unsafe {
+		free((void *)p);
+	}
+}

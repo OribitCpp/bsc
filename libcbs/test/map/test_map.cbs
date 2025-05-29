@@ -1,0 +1,113 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include <assert.h>
+#include "hash_map.hbs"
+
+void test1() {
+    HashMap<int, int, SipHasher13> map = HashMap<int, int, SipHasher13>::with_capacity_and_hasher(20, SipHasher13::new());
+    assert(0 == map.length());
+    assert(28 == map.capacity());
+    assert(1 == map.is_empty());
+    int x = 1;
+    assert(0 == map.contains_key(&const x));
+    Option<int> removed1 = map.remove(&const x);
+    assert(0 == removed1.is_some());
+    map.clear();
+    Option<int> i1 = map.insert(1, 2);
+    assert(1 == i1.is_none());
+    Option<int> i2 = map.insert(1, 4);
+    assert(1 == i2.is_some());
+    assert(2 == option_unwrap(i2));
+    Option<int> i3 = map.insert(2, 3);
+    assert(1 == i3.is_none());
+    Option<int* borrow> res2 = map.get_mut(&const x);
+    assert(1 == res2.is_some());
+    int* borrow unwrap = option_unwrap(res2);
+    *unwrap = *unwrap + 1;
+    assert(5 == *unwrap);
+    Option<int> removed2 = map.remove(&const x);
+    assert(1 == removed2.is_some());
+    assert(5 == option_unwrap(removed2));
+    int y = 2;
+    assert(1 == map.contains_key(&const y));
+    Option<int> i4 = map.insert(1, 2);
+    assert(0 == i4.is_some());
+    assert(2 == map.length());
+    assert(28 == map.capacity());
+    map.clear();
+    assert(0 == map.length());
+}
+
+void test2() {
+    HashMap<unsigned int, long, SipHasher13> map1 = HashMap<unsigned int, long, SipHasher13>::with_capacity_and_hasher(33, SipHasher13::new_with_keys(9, 10));
+    assert(56 == map1.capacity());
+    _BSC_UNUSED Option<long> res1 = map1.insert(1, 2);
+
+    HashMap<long, int, SipHasher13> map2 = HashMap<long, int, SipHasher13>::with_capacity_and_hasher(15, SipHasher13::new());
+    assert(28 == map2.capacity());
+    _BSC_UNUSED Option<int> res2 = map2.insert(1, 2);
+
+    HashMap<unsigned long, int, SipHasher13> map3 = HashMap<unsigned long, int, SipHasher13>::with_capacity_and_hasher(40, SipHasher13::new());
+    assert(56 == map3.capacity());
+    _BSC_UNUSED Option<int> res3 = map3.insert(1, 2);
+
+    RandomState rs = RandomState::new();
+    HashMap<short, long, SipHasher13> map4 = HashMap<short, long, SipHasher13>::with_capacity_and_hasher(12, SipHasher13::new_with_keys(rs.k0, rs.k1));
+    assert(14 == map4.capacity());
+    _BSC_UNUSED Option<long> res4 = map4.insert(1, 2);
+
+    HashMap<unsigned short, long, SipHasher13> map5 = HashMap<unsigned short, long, SipHasher13>::with_capacity_and_hasher(12, SipHasher13::new_with_keys(9, 5));
+    assert(14 == map5.capacity());
+    _BSC_UNUSED Option<long> res5 = map5.insert(1, 2);
+
+    HashMap<char, int, SipHasher13> map6 = HashMap<char, int, SipHasher13>::with_capacity_and_hasher(5, SipHasher13::new_with_keys(2, 10));
+    assert(7 == map6.capacity());
+    _BSC_UNUSED Option<int> res6 = map6.insert(1, 2);
+
+    HashMap<unsigned char, int, SipHasher13> map7 = HashMap<unsigned char, int, SipHasher13>::with_capacity_and_hasher(5, SipHasher13::new());
+    assert(7 == map7.capacity());
+    _BSC_UNUSED Option<int> res7 = map7.insert(1, 2);
+
+    HashMap<long long, long int, SipHasher13> map8 = HashMap<long long, long, SipHasher13>::with_capacity_and_hasher(15, SipHasher13::new());
+    assert(28 == map8.capacity());
+    _BSC_UNUSED Option<long> res8 = map8.insert(1, 2);
+
+    HashMap<unsigned long long, long int, SipHasher13> map9 = HashMap<unsigned long long, long, SipHasher13>::with_capacity_and_hasher(29, SipHasher13::new());
+    assert(56 == map9.capacity());
+    _BSC_UNUSED Option<long> res9 = map9.insert(1, 2);
+}
+
+void test3() {
+    HashMap<int, int, SipHasher13> map = HashMap<int, int, SipHasher13>::with_hasher(SipHasher13::new_with_keys(2, 2));
+    assert(0 == map.capacity());
+    Option<int> insert_res1 = map.insert(1, 2);
+    assert(1 == insert_res1.is_none());
+    assert(3 == map.capacity());
+    Option<int> insert_res2 = map.insert(2, 2);
+    assert(1 == insert_res2.is_none());
+    assert(3 == map.capacity());
+    Option<int> insert_res3 = map.insert(3, 2);
+    assert(1 == insert_res3.is_none());
+    assert(3 == map.capacity());
+    Option<int> insert_res4 = map.insert(4, 2);
+    assert(1 == insert_res4.is_none());
+    assert(7 == map.capacity());
+    Option<int> insert_res5 = map.insert(8, 2);
+    assert(1 == insert_res5.is_none());
+    assert(7 == map.capacity());
+    assert(5 == map.length());
+    map.clear();
+    assert(0 == map.length());
+    assert(7 == map.capacity());
+}
+
+int main() {
+    test1();
+    test2();
+    test3();
+
+    return 0;
+}

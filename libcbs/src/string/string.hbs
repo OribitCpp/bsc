@@ -1,0 +1,38 @@
+#ifndef BISHENG_C_SAFETY_STRING_H
+#define BISHENG_C_SAFETY_STRING_H
+
+#include "vec.hbs"
+#include <stdint.h>
+
+extern const size_t bsc_string_no_pos;
+
+owned struct String {
+// FIXME: make it private later
+public:
+    Vec<char> vec;
+
+public:
+    ~String(String this) {
+        // AUTO INSERT: ~Vec(this.vec)
+    }
+};
+
+safe char* borrow String::as_mut_str(String* borrow this);
+safe const char* borrow String::as_str(const String* borrow this);
+safe char String::at(const String* borrow this, size_t index);
+safe size_t String::capacity(const String* borrow this);
+safe _Bool String::equals(const String* borrow this, const String* borrow other);
+safe size_t String::find(const String* borrow this, char c);
+unsafe String String::from(const char* str);
+safe const char* borrow String::get(const String* borrow this, size_t index);
+safe char* borrow String::get_mut(String* borrow this, size_t index);
+safe _Bool String::is_empty(const String* borrow this);
+safe size_t String::length(const String* borrow this);
+safe String String::new(void);
+safe void String::push(String* borrow this, char value);
+safe void String::set(String* borrow this, size_t index, char value);
+safe void String::shrink_to_fit(String* borrow this);
+safe String String::slice(const String* borrow this, size_t start, size_t length);
+safe String String::with_capacity(size_t cap);
+
+#endif

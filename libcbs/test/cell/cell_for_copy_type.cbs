@@ -1,0 +1,36 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include "cell.hbs"
+#include <assert.h>
+
+void test_cell_1() {
+    int a = 5;
+    Cell<int> c = Cell<int>::new(a);
+    assert(c.get() == 5);
+    c.set(10);
+    assert(c.get() == 10);   
+}
+
+struct A {
+    int a;
+};
+
+void test_cell_2() {
+    struct A a1 = { .a = 5 };
+    Cell<struct A> c = Cell<struct A>::new(a1);
+    assert(c.get().a == 5);
+
+    struct A a2 = { .a = 10 };
+    c.set(a2);
+    assert(c.get().a == 10);   
+}
+
+int main() {
+    test_cell_1();
+    test_cell_2();
+    return 0;
+}
+

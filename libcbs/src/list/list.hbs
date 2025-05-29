@@ -1,0 +1,273 @@
+#ifndef BISHENG_C_LIST_H
+#define BISHENG_C_LIST_H
+
+#include <stdlib.h>
+#include "bishengc_safety.hbs"
+#include <bsc_type_traits.hbs>
+
+struct _BSC_ListNode<T> {
+    _BSC_ListNode<T>* next;
+    _BSC_ListNode<T>* prev;
+    T element;
+};
+
+unsafe _BSC_ListNode<T>* _BSC_ListNode<T>::new(T el){
+    _BSC_ListNode<T> *rv = (_BSC_ListNode<T> *)malloc(sizeof(_BSC_ListNode<T>));
+    if (!rv) {
+        bsc_bad_alloc_handler(sizeof(_BSC_ListNode<T>));
+    }
+    rv->next = NULL;
+    rv->prev = NULL;
+    rv->element = el;
+    return rv;
+}
+
+owned struct LinkedList<T> {
+private:
+    _BSC_ListNode<T> *head;
+    _BSC_ListNode<T> *tail;
+    size_t len;
+
+    ~LinkedList(LinkedList<T> this) {
+        _BSC_ListNode<T> *temp = this.head;
+        while (temp != NULL)
+        {
+            temp = this.head->next;
+            {
+                _BSC_UNUSED T tempEle = this.head->element;   // node will be destructed
+            }
+            free((void *)this.head);
+            this.head = temp;
+        }
+        this.head = NULL;
+        this.tail = NULL;
+    }
+};
+
+// TODO: move to private function when issue IAO57M is fix
+static void LinkedList<T>::unlink_node(LinkedList<T> * borrow this, _BSC_ListNode<T> *node){
+    if (node->prev == NULL) {
+        this->head = node->next;
+    } else {
+        node->prev->next = node->next;
+    }
+    if (node->next == NULL) {
+        this->tail = node->prev;
+    } else {
+        node->next->prev = node->prev;
+    }
+    this->len--;
+    {
+        _BSC_UNUSED T tempEle = node->element;  // node will be destructed
+    }
+    free((void *)node);
+    node = NULL;
+}
+
+
+safe LinkedList<T> LinkedList<T>::new(void){
+    _Static_assert(is_move_semantic<T>() == false || is_owned_struct<T>() == true,
+                    "Can only instantiate LinkedList with owned struct or copyable type, "
+				    "because BSC doesn't know how to free memory for other types. "
+				    "Fix: You can wrap T with an owned struct.");
+    unsafe {
+        LinkedList<T> rv = {NULL, NULL, 0};
+        return rv;
+    }
+}
+
+// Adds a new element at the end of the list.
+safe void LinkedList<T>::push_back(LinkedList<T> * borrow this, T el){
+    unsafe {
+        _BSC_ListNode<T> *node = _BSC_ListNode<T>::new(el);
+        node->prev = this->tail;
+        if (this->tail == NULL) {
+            this->head = node;
+        } else {
+            this->tail->next = node;
+        }
+        this->tail = node;
+    }
+    this->len +=1;
+}
+
+// Adds a new element at the beginning of the list.
+safe void LinkedList<T>::push_front(LinkedList<T> * borrow this, T el){
+    unsafe {
+        _BSC_ListNode<T> *node = _BSC_ListNode<T>::new(el);
+        node->next = this->head;
+        if (this->head == NULL) {
+            this->tail = node;
+        } else {
+            this->head->prev = node;
+        }
+        this->head = node;
+    }
+    this->len +=1;
+}
+
+// Removes the first element of the list, and reduces the size of the list by 1.
+safe T LinkedList<T>::pop_front(LinkedList<T> * borrow this){
+    unsafe {
+        if (this->len == 0) {
+            bsc_out_of_bound_handler(0, 0);
+        }
+        _BSC_ListNode<T> *popNode = this->head;
+        T popVal = popNode->element;
+        this->head = this->head->next;
+        if (this->head == NULL) {
+            this->tail = NULL;
+        } else {
+            this->head->prev = NULL;
+        }
+        this->len--;
+        free((void *)popNode);
+        popNode = NULL;
+        return popVal;
+    }
+}
+
+// Removes the last element of the list, and reduces the size of the list by 1.
+safe T LinkedList<T>::pop_back(LinkedList<T> * borrow this){
+    unsafe {
+        if (this->len == 0) {
+            bsc_out_of_bound_handler(0, 0);
+        }
+        _BSC_ListNode<T> *popNode = this->tail;
+        T popVal = popNode->element;
+        this->tail = this->tail->prev;
+        if (this->tail == NULL) {
+            this->head = NULL;
+        } else {
+            this->tail->next = NULL;
+        }
+        this->len--;
+        free((void *)popNode);
+        popNode = NULL;
+        return popVal;
+    }
+}
+
+// Splits the list into two at the given index. Returns everything after the given index,
+// including the index.
+safe LinkedList<T> LinkedList<T>::split_off(LinkedList<T> * borrow this, size_t index) {
+    unsafe {
+        if (this->len < index) {
+            bsc_out_of_bound_handler(this->len, index);
+        }
+        LinkedList<T> rv = {NULL, NULL, 0};  
+        if (index == 0) {
+            rv.head = this->head;
+            rv.tail = this->tail;
+            rv.len = this->len;
+            this->head = NULL;
+            this->tail = NULL;
+            this->len = 0;
+        } else if (index == this->len){
+            return rv;
+        } else {
+            _BSC_ListNode<T>* node;
+            size_t p = index;
+            if (p <= (this->len / 2)) {
+                node = this->head;
+                while (p > 0)
+                {
+                    node = node->next;
+                    p--;
+                }
+            } else {
+                node = this->tail;
+                while (p < this->len - 1)
+                {
+                    node = node->prev;
+                    p++;
+                }
+            }
+            rv.head = node;
+            rv.tail = this->tail;
+            rv.len = this->len - index;
+            this->len = index;
+            this->tail = node->prev;
+            node->prev->next = NULL;
+            node->prev = NULL;
+        }
+
+        return rv;
+    }
+}
+
+// Removes all the elements from the list, which are equal to a given element.
+safe void LinkedList<T>::remove(LinkedList<T> * borrow this, T el){
+    unsafe {
+        _BSC_ListNode<T> *h = this->head;
+        while(h != NULL) {
+            _BSC_ListNode<T> *n = h->next;
+            if (h->element == el) {
+                this->unlink_node(h);
+            }
+            h = n;
+        }
+    }
+}
+
+// Remove all the elements of the list container, thus making it size 0.
+safe void LinkedList<T>::clear(LinkedList<T> * borrow this){
+    unsafe {
+        _BSC_ListNode<T> *h = this->head;
+        while(h != NULL) {
+            _BSC_ListNode<T> *n = h->next;
+            this->unlink_node(h);
+            h = n;
+        }
+    }
+}
+
+// Returns the number of elements in the list.
+safe size_t LinkedList<T>::length(const LinkedList<T> * borrow this){
+    return this->len;
+}
+
+// Returns the value of the first element in the list.
+safe T LinkedList<T>::front(const LinkedList<T> * borrow this){
+    unsafe {
+        if (this->len == 0) {
+            bsc_out_of_bound_handler(0, 0);
+        }
+    }
+    return this->head->element;
+}
+
+// Returns the value of the last element in the list.
+safe T LinkedList<T>::back(const LinkedList<T> * borrow this){
+    unsafe {
+        if (this->len == 0) {
+            bsc_out_of_bound_handler(0, 0);
+        }
+    }
+    return this->tail->element;
+}
+
+// Returns the number of elements in the list.
+safe _Bool LinkedList<T>::is_empty(const LinkedList<T> * borrow this){
+    if (this->len == 0) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+safe _Bool LinkedList<T>::contains(const LinkedList<T> * borrow this, T el){
+    unsafe {
+        _BSC_ListNode<T> *h = this->head;
+        while(h != NULL) {
+            _BSC_ListNode<T> *n = h->next;
+            if (h->element == el) {
+                return 1;
+            }
+            h = n;
+        }
+    }
+    return 0;
+}
+
+#endif

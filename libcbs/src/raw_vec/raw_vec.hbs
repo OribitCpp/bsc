@@ -1,0 +1,68 @@
+#ifndef BISHENG_C_SAFETY_RAW_VEC_H
+#define BISHENG_C_SAFETY_RAW_VEC_H
+
+#include "bishengc_safety.hbs"
+#include <assert.h>
+
+owned struct RawVec<T> {
+// FIXME: make it private later
+public:
+	T* ptr;
+	size_t cap;
+
+	~RawVec(RawVec<T> this) {
+		if (this.ptr) {
+			free((void *)this.ptr);
+		}
+	}
+};
+
+safe void RawVec<T>::grow_one(RawVec<T>* borrow this) {
+    size_t required_cap = this->cap + 1;
+    size_t cap = (this->cap * 2 > required_cap) ? (this->cap * 2) : required_cap;
+    unsafe {
+        this->ptr = realloc((void *)this->ptr, cap * sizeof(T));
+        if (!this->ptr) {
+            bsc_bad_alloc_handler(cap);
+        }
+    }
+    this->cap = cap;
+}
+
+safe RawVec<T> RawVec<T>::new(void) {
+    unsafe {
+        RawVec<T> rv = { .ptr = NULL, .cap = 0 };
+        return rv;
+    }
+}
+
+safe void RawVec<T>::shrink_to_fit(RawVec<T>* borrow this, size_t cap) {
+    unsafe {
+        assert(cap <= this->cap);
+
+        if (cap == 0) {
+            free((void *)this->ptr);
+            this->ptr = NULL;
+            this->cap = 0;
+        } else {
+            this->ptr = (T*)realloc((void *)this->ptr, cap * sizeof(T));
+            if (!this->ptr) {
+                bsc_bad_alloc_handler(cap * sizeof(T));
+            }
+            this->cap = cap;
+        }
+    }
+}
+
+safe RawVec<T> RawVec<T>::with_capacity(size_t cap) {
+    unsafe {
+        T* ptr = (T*)malloc(cap * sizeof(T));
+        if (!ptr) {
+            bsc_bad_alloc_handler(cap * sizeof(T));
+        }
+        RawVec<T> rv = { .ptr = ptr, .cap = cap };
+        return rv;
+    }
+}
+
+#endif

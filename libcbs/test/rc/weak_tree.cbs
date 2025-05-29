@@ -1,0 +1,39 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include "cell.hbs"
+#include "rc.hbs"
+#include "vec.hbs"
+
+owned struct Node {
+public:
+    int value;
+    RefCell<Weak<Node>> parent;
+    RefCell<Vec<Rc<Node>>> children;
+};
+
+void tree() {
+    Node temp_leaf1 = { .value = 5, .children = RefCell<Vec<Rc<Node>>>::new(Vec<Rc<Node>>::new()) };
+    Node temp_leaf2 = { .value = 6, .children = RefCell<Vec<Rc<Node>>>::new(Vec<Rc<Node>>::new()) };
+    Rc<Node> leaf1 = Rc<Node>::new(temp_leaf1);
+    Rc<Node> leaf2 = Rc<Node>::new(temp_leaf2);
+
+    Node temp_root = { .value = 10, .children = RefCell<Vec<Rc<Node>>>::new(Vec<Rc<Node>>::new()) };
+    RefMut<Vec<Rc<Node>>> rm_root_children = temp_root.children.borrow_mut();
+    rm_root_children.deref()->push(leaf1.clone());
+    rm_root_children.deref()->push(leaf2.clone());
+    Rc<Node> root = Rc<Node>::new(temp_root);
+
+    RefMut<Weak<Node>> rm_leaf1_parent = leaf1.deref()->parent.borrow_mut();
+    *(rm_leaf1_parent.deref()) = Weak<Node>::new(&const root);
+
+    RefMut<Weak<Node>> rm_leaf2_parent = leaf2.deref()->parent.borrow_mut();
+    *(rm_leaf2_parent.deref()) = Weak<Node>::new(&const root);
+}
+
+int main() {
+    tree();
+    return 0;
+}

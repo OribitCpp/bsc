@@ -1,0 +1,93 @@
+#ifndef BISHENG_C_SAFETY_OPTION_H
+#define BISHENG_C_SAFETY_OPTION_H
+
+#include "bishengc_safety.hbs"
+#include <bsc_type_traits.hbs>
+#include <string.h>
+
+typedef enum {
+    None,
+    Some
+} OptionState;
+
+// Optional values.
+//
+// Type `Option` represents an optional value:
+// every `Option` is either `Some` and contains a value, or `None`, and does not.
+owned struct Option<T> {
+// FIXME: makes it private later
+public:
+    OptionState state;
+    char val[sizeof(T)];
+
+    ~Option(Option<T> this) {
+        if (this.state == Some) {
+            T* ptr = (T *)this.val;
+            _BSC_UNUSED T tmp = *ptr;
+            // IF(`T` isa owned struct type) AUTO INSERT: ~T(tmp)
+        }
+    }
+};
+
+// Returns `true` if the option is a `None` value.
+safe _Bool Option<T>::is_none(const Option<T>* borrow this) {
+    unsafe {
+        return this->state == None;
+    }
+}
+
+// Returns `true` if the option is a `Some` value.
+safe _Bool Option<T>::is_some(const Option<T>* borrow this) {
+    unsafe {
+        return this->state == Some;
+    }
+}
+
+// Creates a `Some` value.
+safe Option<T> Option<T>::Some(T t) {
+    _Static_assert(is_move_semantic<T>() == false || is_owned_struct<T>() == true,
+                    "Can only instantiate Option with owned struct or copyable type, "
+				    "because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap T with an owned struct.");
+    unsafe {
+        Option<T> o = {
+            .state = Some,
+            .val = {0}
+        };
+        memcpy(o.val, (const void *)&t, sizeof(T));
+        forget<T>(t); // forget value `t` to avoid calling its destructor
+        return o;
+    }
+}
+
+// Creates a `None` value.
+safe Option<T> Option<T>::None(void) {
+    _Static_assert(is_move_semantic<T>() == false || is_owned_struct<T>() == true,
+                    "Can only instantiate Option with owned struct or copyable type, "
+				    "because BSC doesn't know how to free memory for other types. "
+				    "Fix: You can wrap T with an owned struct.");
+    unsafe {
+        Option<T> o = {
+            .state = None,
+            .val = {0}
+        };
+        return o;
+    }
+}
+
+// Returns the contained `Some` value, consuming the `option` value.
+//
+// Aborts if the `option` value equals `None`.
+safe T option_unwrap<T>(Option<T> option) {
+    if (option.is_none()) {
+        bsc_unwrap_failed();
+    }
+    unsafe {
+        T* ptr = (T *_Nonnull)option.val;
+        T t = *ptr;
+        forget<Option<T>>(option); // forget value `option` to avoid calling its destructor
+        return t;
+    }
+}
+
+#endif

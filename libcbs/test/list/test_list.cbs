@@ -1,0 +1,113 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include "list.hbs"
+#include <assert.h>
+
+void test1(){
+    LinkedList<int> l = LinkedList<int>::new();
+    l.push_back(5);
+    l.push_back(6);
+    l.push_front(4);
+    l.push_front(3);            
+    assert(4 == l.length());     // 3 4 5 6
+    assert(6 == l.pop_back());   
+    assert(3 == l.length());     // 3 4 5
+    assert(5 == l.pop_back());
+    assert(2 == l.length());     // 3 4
+    assert(3 == l.pop_front());  // 3 4
+    assert(1 == l.length());     // 4
+    l.remove(4);
+    assert(0 == l.length());     // 4
+}
+
+void test2(){
+    LinkedList<int> l = LinkedList<int>::new();
+    l.push_back(5);
+    l.push_back(6);
+    l.push_front(4);
+    l.push_front(3);
+    assert(3 == l.front());     // 3 4 5 6
+    assert(3 == l.front());     // 3 4 5 6
+    assert(6 == l.back());      // 3 4 5 6
+    assert(6 == l.back());      // 3 4 5 6
+    l.remove(4);
+    assert(3 == l.length());    // 3 5 6
+    assert(!l.is_empty());      // 3 4 5 6
+    l.clear();
+    assert(l.is_empty());
+}
+
+void test3(){
+    LinkedList<int> l = LinkedList<int>::new();
+    l.push_back(5);
+    l.push_back(6);
+    l.push_front(4);
+    l.push_front(3);
+    LinkedList<int> j = l.split_off(2);
+    assert(2 == l.length());      // 3 4
+    assert(2 == j.length());      // 5 6
+    assert(!l.contains(2));
+    assert(l.contains(4));
+    assert(4 == l.pop_back());    // 5 6
+    assert(!l.contains(4));
+    assert(5 == j.pop_front());   // 5 6
+}
+
+void test4(){
+    LinkedList<char> l = LinkedList<char>::new();
+    l.push_back('C');
+    l.push_back('D');
+    l.push_front('B');
+    l.push_front('A');
+    LinkedList<char> j = l.split_off(2);
+    assert(2 == l.length());      // A B
+    assert(2 == j.length());      // C D
+    assert(!l.contains('E'));
+    assert(l.contains('A'));
+    assert('B' == l.pop_back());    // A B
+    assert(!l.contains('B'));
+    assert('D' == j.pop_back());   // C D
+}
+
+void test5(){
+    LinkedList<char> l = LinkedList<char>::new();
+    l.push_back('C');
+    l.push_back('D');
+    l.push_front('B');
+    l.push_front('A');
+    LinkedList<char> j = l.split_off(4);
+    assert(4 == l.length());      // A B C D
+    assert(0 == j.length());      // ''
+    assert(j.is_empty());
+    LinkedList<char> k = l.split_off(0);
+    assert(l.is_empty());
+    assert(4 == k.length());      // A B C D
+}
+
+owned struct MyClass{
+public:
+    int a;
+    ~MyClass(MyClass this){
+        // printf("free MyClass");
+    }
+};
+
+void test6(){
+    LinkedList<MyClass> l = LinkedList<MyClass>::new();
+    MyClass c1 = {.a = 1};
+    l.push_back(c1);
+    l.clear();
+}
+
+int main(){
+    test1();
+    test2();
+    test3();
+    test4();
+    test5();
+    test6();
+    return 0;
+}

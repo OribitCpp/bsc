@@ -1,0 +1,15 @@
+add_custom_target(check-stdcbs)
+
+function(add_libcbs_test_suite name)
+  add_custom_target(${name})
+  add_dependencies(check-stdcbs ${name})
+endfunction()
+
+add_subdirectory(bishengc_safety)
+add_subdirectory(list)
+add_subdirectory(map)
+add_subdirectory(scheduler)
+add_subdirectory(string)
+add_subdirectory(vec)
+add_subdirectory(rc)
+add_subdirectory(cell)

@@ -1,0 +1,148 @@
+#ifndef BISHENG_C_SAFETY_VEC_H
+#define BISHENG_C_SAFETY_VEC_H
+
+#include "raw_vec.hbs"
+#include <bsc_type_traits.hbs>
+#include <string.h>
+
+owned struct Vec<T> {
+// FIXME: make it private later
+public:
+	RawVec<T> buf;
+	size_t len;
+
+public:
+	~Vec(Vec<T> this) {
+		for (size_t index = 0; index < this.len; index++) {
+			_BSC_UNUSED T tmp = this.buf.ptr[index];
+			// IF(`T` isa owned struct type) AUTO INSERT: ~T(tmp)
+		}
+		// AUTO INSERT: ~RawVec(this.buf)
+	}
+};
+
+safe size_t Vec<T>::capacity(const Vec<T>* borrow this) {
+	return this->buf.cap;
+}
+
+safe void Vec<T>::clear(Vec<T>* borrow this) {
+	unsafe {
+		for (size_t index = 0; index < this->len; index++) {
+			_BSC_UNUSED T tmp = this->buf.ptr[index];
+			// IF(`T` isa owned struct type) AUTO INSERT: ~T(tmp)
+		}
+		this->len = 0;
+	}
+}
+
+safe const T* borrow Vec<T>::get(const Vec<T>* borrow this, size_t index) {
+	unsafe {
+		if (this->len <= index) {
+			bsc_out_of_bound_handler(this->len, index);
+		}
+	}
+	return &const this->buf.ptr[index];
+}
+
+safe T* borrow Vec<T>::get_mut(Vec<T>* borrow this, size_t index) {
+	unsafe {
+		if (this->len <= index) {
+			bsc_out_of_bound_handler(this->len, index);
+		}
+	}
+	return &mut this->buf.ptr[index];
+}
+
+safe _Bool Vec<T>::is_empty(const Vec<T>* borrow this) {
+	unsafe {
+		return this->len == 0;
+	}
+}
+
+safe size_t Vec<T>::length(const Vec<T>* borrow this) {
+	return this->len;
+}
+
+safe Vec<T> Vec<T>::new(void) {
+    _Static_assert(is_move_semantic<T>() == false || is_owned_struct<T>() == true,
+                	"Can only instantiate Vec with owned struct or copyable type, "
+					"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap T with an owned struct.");
+	unsafe {
+		RawVec<T> buf = RawVec<T>::new();
+		Vec<T> v = { .buf = buf, .len = 0 };
+		return v;
+	}
+}
+
+safe T Vec<T>::pop(Vec<T>* borrow this) {
+	unsafe {
+		if (this->len == 0) {
+			bsc_out_of_bound_handler(0, 0);
+		}
+	}
+	this->len -= 1;
+	T ret = this->buf.ptr[this->len];
+	return ret;
+}
+
+safe void Vec<T>::push(Vec<T>* borrow this, T value) {
+	if (this->len == this->capacity()) {
+		this->buf.grow_one();
+	}
+	unsafe {
+		T* ptr = this->buf.ptr + this->len;
+		*ptr = value;
+	}
+	this->len += 1;
+}
+
+safe T Vec<T>::remove(Vec<T>* borrow this, size_t index) {
+	unsafe {
+		if (this->len <= index) {
+			bsc_out_of_bound_handler(this->len, index);
+		}
+		T ret = this->buf.ptr[index];
+		T* dest = this->buf.ptr + index;
+		T* src = this->buf.ptr + index + 1;
+		memcpy((void*)dest, (void*)src, sizeof(T) * (this->len - index - 1));
+		this->len -= 1;
+		return ret;
+	}
+}
+
+safe void Vec<T>::set(Vec<T>* borrow this, size_t index, T value) {
+	unsafe {
+		if (this->len < index) {
+			bsc_out_of_bound_handler(this->len, index);
+		}
+	}
+	if (index < this->len) {
+		unsafe {
+			_BSC_UNUSED T tmp = this->buf.ptr[index];
+			T* ptr = this->buf.ptr + index;
+			*ptr = value;
+		}
+		// IF(`T` isa owned struct type) AUTO INSERT: ~T(tmp)
+	} else {
+		this->push(value);
+	}
+}
+
+safe void Vec<T>::shrink_to_fit(Vec<T>* borrow this) {
+	if (this->capacity() > this->len) {
+		this->buf.shrink_to_fit(this->len);
+	}
+}
+
+safe Vec<T> Vec<T>::with_capacity(size_t cap) {
+    _Static_assert(is_move_semantic<T>() == false || is_owned_struct<T>() == true,
+					"Can only instantiate Vec with owned struct or copyable type, "
+					"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap T with an owned struct.");
+	RawVec<T> buf = RawVec<T>::with_capacity(cap);
+	Vec<T> v = { .buf = buf, .len = 0 };
+	return v;
+}
+
+#endif

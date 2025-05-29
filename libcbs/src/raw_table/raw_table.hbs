@@ -1,0 +1,366 @@
+#ifndef BISHENG_C_SAFETY_RAW_TABLE_H
+#define BISHENG_C_SAFETY_RAW_TABLE_H
+
+#include "bishengc_safety.hbs"
+#include "option.hbs"
+#include "result.hbs"
+#include <stdint.h>
+#include <string.h>
+
+/// Control byte value for an empty bucket.
+#define EMPTY   0xff
+/// Control byte value for a deleted bucket.
+#define DELETED 0x80
+// Constant for h2 function that grabing the top 7 bits of the hash.
+#define MIN_HASH_LEN sizeof(size_t)
+
+// Primary hash function, used to select the initial bucket to probe from.
+static size_t h1(uint64_t hash) {
+    return hash;
+}
+
+// Secondary hash function, saved in the low 7 bits of the control byte.
+static safe uint8_t h2(uint64_t hash) {
+    unsafe {
+        uint64_t top7 = hash >> (MIN_HASH_LEN * 8 - 7);
+        return top7 & 0x7f;
+    }
+}
+
+// Probe sequence based on linear numbers, which is guaranteed
+// to visit every group of elements exactly once.
+//
+// A linear probe has use jump by 1 group every time. We just jump
+// by 1 group (meaning we just continue our linear scan) each time.
+typedef struct ProbeSeq {
+    size_t pos;
+    size_t stride;
+    size_t count;
+} ProbeSeq;
+
+void ProbeSeq::move_next(ProbeSeq* borrow this, size_t bucket_mask);
+
+// A raw hash table which holds data for `HashMap`.
+owned struct RawTable<K, V> {
+// FIXME: makes it private
+public:
+    // Mask to get an index from a hash value. The value is one less than the
+    // number of buckets in the table.
+    size_t bucket_mask;
+
+    // Constrol bytes recording the state of each bucket.
+    uint8_t* ctrl;
+
+    // All keys stored in the table.
+    K* keys;
+
+    // All values stored in the table.
+    V* values;
+
+    // Number of elements that can be inserted before we need to grow the table.
+    size_t growth_left;
+
+    // Number of elements in the table, only really used by length().
+    size_t items;
+
+    ~RawTable(RawTable<K, V> this) {
+        if (this.bucket_mask != 0) {
+            for (size_t index = 0; index < this.bucket_mask + 1; index += 1) {
+                // if not EMPTY or DELETED, get the corresponding key and value
+                if (*(this.ctrl + index) != EMPTY &&
+                    *(this.ctrl + index) != DELETED) {
+                    _BSC_UNUSED K key = this.keys[index];
+                    _BSC_UNUSED V value = this.values[index];
+                    // IF(`K` isa owned struct type) AUTO INSERT: ~K(key)
+                    // IF(`V` isa owned struct type) AUTO INSERT: ~V(value)
+                }
+            }
+        }
+        if (this.ctrl) {
+            free((void *)this.ctrl);
+        }
+        if (this.keys) {
+            free((void *)this.keys);
+        }
+        if (this.values) {
+            free((void *)this.values);
+        }
+    }
+};
+
+/* ------------- Functions used in RawTable's member functions ------------- */
+
+// Returns the maximum effective capacity for the given bucket mask, taking
+// the maximum load factor into account.
+safe size_t bucket_mask_to_capacity(size_t bucket_mask);
+
+// Returns the number of buckets needed to hold the given number of items,
+// taking the maximum load factor into account.
+//
+// The function aborts if an overflow occurs.
+safe size_t capacity_to_buckets(size_t cap);
+
+// Returns a `_Bool` indicating whether the byte is `EMPTY`.
+safe _Bool match_empty(uint8_t group);
+
+/* -------------- Member function implementations of RawTable -------------- */
+
+// Returns the number of buckets in the table.
+safe size_t RawTable<K, V>::buckets(const RawTable<K, V>* borrow this) {
+    return this->bucket_mask + 1;
+}
+
+// Returns the number of elements the map can hold without reallocating.
+//
+// This number is a lower bound; the table might be able to hold
+// more, but is guaranteed to be able to hold at least this many.
+safe size_t RawTable<K, V>::capacity(const RawTable<K, V>* borrow this) {
+    return this->items + this->growth_left;
+}
+
+// Removes all elements from the table without freeing the backing memory.
+//
+// This function marks all table buckets as empty and frees every existing elements.
+safe void RawTable<K, V>::clear(RawTable<K, V>* borrow this) {
+    if (this->bucket_mask == 0) return;
+
+    unsafe {
+        for (size_t index = 0; index < this->bucket_mask + 1; index += 1) {
+            // if not EMPTY or DELETED, get the corresponding key and value
+            if (*(this->ctrl + index) != EMPTY &&
+                *(this->ctrl + index) != DELETED) {
+                _BSC_UNUSED K key = this->keys[index];
+                _BSC_UNUSED V value = this->values[index];
+                // IF(`K` isa owned struct type) AUTO INSERT: ~K(key)
+                // IF(`V` isa owned struct type) AUTO INSERT: ~V(value)
+            }
+        }
+        memset(this->ctrl, EMPTY, this->bucket_mask + 1);
+    }
+
+    // reset `items` and `growth_left`
+    this->items = 0;
+    this->growth_left = bucket_mask_to_capacity(this->bucket_mask);
+    return;
+}
+
+// Searches for an element in a table, returning the `index` of the found element.
+//
+// This function does not make any changes to the `data` part of the table, or any
+// changes to the `items` or `growth_left` field of the table.
+safe Option<size_t> RawTable<K, V>::find(const RawTable<K, V>* borrow this, uint64_t hash, const K* borrow k) {
+    if (this->items == 0) {
+        return Option<size_t>::None();
+    }
+
+    uint8_t h2_hash = h2(hash);
+
+    unsafe {
+        ProbeSeq probe_seq = this->probe_seq(hash);
+
+        while (probe_seq.count <= this->bucket_mask) {
+            uint8_t* base = this->ctrl + probe_seq.pos;
+            uint8_t ctrl_byte = *base;
+
+            // finding the matched byte
+            if (ctrl_byte == h2_hash) {
+                size_t index = probe_seq.pos;
+
+                // check the equivalence of `k`
+                K* key_index = this->keys + index;
+                const K* borrow key = &const *key_index;
+                // NOTE: maybe we can use `==` after supporting BiShengC operator overloading
+                if (key->equals(k)) {
+                    return Option<size_t>::Some(index);
+                }
+            }
+
+            // finding an `EMPTY` bucket indicates no `k`
+            if (match_empty(ctrl_byte)) {
+                return Option<size_t>::None();
+            }
+
+            // move to the next position
+            probe_seq.move_next(this->bucket_mask);
+        }
+    }
+
+    return Option<size_t>::None();
+}
+
+// Searches for an element in the table. If the element is not found,
+// returns `Err` with the position of a slot where an element with the
+// same hash could be inserted.
+safe Result<size_t, size_t> RawTable<K, V>::find_or_find_insert_slot(RawTable<K, V>* borrow this, uint64_t hash, const K* borrow k) {
+    // We know for sure that there is at least one empty or deleted `bucket` in the table.
+    uint8_t h2_hash = h2(hash);
+
+    unsafe {
+        ProbeSeq probe_seq = this->probe_seq(hash);
+        _Bool find_deleted = 0;
+        size_t deleted_pos = 0;
+
+        while (probe_seq.count <= this->bucket_mask) {
+            uint8_t* base = this->ctrl + probe_seq.pos;
+            uint8_t ctrl_byte = *base;
+
+            // finding the matched byte
+            if (ctrl_byte == h2_hash) {
+                size_t index = probe_seq.pos;
+
+                // check the equivalence of `k`
+                K* key_index = this->keys + index;
+                const K* borrow key = &const *key_index;
+                // NOTE: maybe we can use `==` after supporting BiShengC operator overloading
+                if (key->equals(k)) {
+                    return Result<size_t, size_t>::Ok(index);
+                }
+            }
+
+            // finding an `EMPTY` bucket indicates the insertion point
+            if (match_empty(ctrl_byte)) {
+                if (find_deleted) {
+                    return Result<size_t, size_t>::Err(deleted_pos);
+                } else {
+                    return Result<size_t, size_t>::Err(probe_seq.pos);
+                }
+            }
+
+            // finding a `DELETED` bucket indicates the potential insertion point
+            if (ctrl_byte == DELETED) {
+                if (!find_deleted) {
+                    find_deleted = 1;
+                    deleted_pos = probe_seq.pos;
+                }
+            }
+
+            // move to the next position
+            probe_seq.move_next(this->bucket_mask);
+        }
+
+        return Result<size_t, size_t>::Err(deleted_pos);
+    }
+}
+
+// Insert a new element into the table in the given slot.
+safe void RawTable<K, V>::insert_in_slot(RawTable<K, V>* borrow this, size_t slot, uint64_t hash, K k, V v) {
+    uint8_t h2_hash = h2(hash);
+    unsafe {
+        *(this->ctrl + slot) = h2_hash;
+        *(this->keys + slot) = k;
+        *(this->values + slot) = v;
+    }
+    this->items += 1;
+    this->growth_left -= 1;
+    return;
+}
+
+// Returns `true` if the table contains no elements.
+safe _Bool RawTable<K, V>::is_empty(const RawTable<K, V>* borrow this) {
+    unsafe {
+        return this->items == 0;
+    }
+}
+
+// Returns the number of elements in the table.
+safe size_t RawTable<K, V>::length(const RawTable<K, V>* borrow this) {
+    return this->items;
+}
+
+// Creates a new empty hash table without allocating any memory.
+//
+// In effect this returns a table with exactly 1 bucket. However we can
+// leave the data pointer dangling since that bucket is never written to
+// due to our load factor forcing us to always have at least 1 free bucket.
+//
+// FIXME: maybe incorrect! After implementing `insert`, we will review it.
+safe RawTable<K, V> RawTable<K, V>::new(void) {
+    unsafe {
+        RawTable<K, V> rt = {
+            .bucket_mask = 0,
+            .ctrl        = NULL,
+            .keys        = NULL,
+            .values      = NULL,
+            .growth_left = 0,
+            .items       = 0
+        };
+        return rt;
+    }
+}
+
+// Returns an iterator-like object for a probe sequence on the table.
+//
+// This iterator never terminates, but is guaranteed to visit each bucket
+// group exactly once. The loop using `probe_seq` must terminate upon
+// reaching a group containing an empty bucket.
+ProbeSeq RawTable<K, V>::probe_seq(const RawTable<K, V>* borrow this, uint64_t hash) {
+    ProbeSeq ps = {
+        .pos = h1(hash) & this->bucket_mask,
+        .stride = 1,
+        .count = 0
+    };
+    return ps;
+}
+
+// Finds and removes an element from the table, returning the value.
+safe Option<V> RawTable<K, V>::remove_entry(RawTable<K, V>* borrow this, uint64_t hash, const K* borrow k) {
+    Option<size_t> result = this->find(hash, k);
+    if (result.is_some()) {
+        unsafe {
+            size_t index = option_unwrap<size_t>(result);
+
+            *(this->ctrl + index) = DELETED;
+            this->growth_left += 1;
+            this->items -= 1;
+
+            _BSC_UNUSED K key = *(this->keys + index);
+            V value = *(this->values + index);
+            // IF(`K` isa owned struct type) AUTO INSERT: ~K(key)
+            return Option<V>::Some(value);
+        }
+    }
+    
+    // AUTO INSERT: ~Option(result)
+    return Option<V>::None();
+}
+
+// Attempts to allocate a new `RawTable` with at least enough
+// capacity for inserting the given number of elements without reallocating.
+//
+// All the control bytes are initialized with the `EMPTY` bytes.
+safe RawTable<K, V> RawTable<K, V>::with_capacity(size_t cap) {
+    if (cap == 0) {
+        return RawTable<K, V>::new();
+    }
+    unsafe {
+        size_t buckets = capacity_to_buckets(cap);
+        uint8_t* ctrl = malloc(sizeof(uint8_t) * buckets);
+        if (!ctrl) {
+            bsc_bad_alloc_handler(sizeof(uint8_t) * buckets);
+        }
+        // initialize all ctrl bytes with EMPTY
+        memset(ctrl, EMPTY, sizeof(uint8_t) * buckets);
+
+        K* keys = malloc(sizeof(K) * buckets);
+        if (!keys) {
+            bsc_bad_alloc_handler(sizeof(K) * buckets);
+        }
+        V* values = malloc(sizeof(V) * buckets);
+        if (!values) {
+            bsc_bad_alloc_handler(sizeof(V) * buckets);
+        }
+
+        RawTable<K, V> rt = {
+            .bucket_mask = buckets - 1,
+            .ctrl        = ctrl,
+            .keys        = keys,
+            .values      = values,
+            .growth_left = bucket_mask_to_capacity(buckets - 1),
+            .items       = 0
+        };
+
+        return rt;
+    }
+}
+
+#endif

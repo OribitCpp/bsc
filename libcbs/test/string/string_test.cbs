@@ -1,0 +1,26 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include "string.hbs"
+#include <assert.h>
+
+void test1() {
+	String s1 = String::new();
+	size_t l = s1.length();
+	assert(0 == l);
+	s1.set(0, 'h');
+	s1.set(1, 'e');
+	s1.set(2, 'l');
+	s1.set(3, 'l');
+	s1.set(4, 'o');
+	s1.set(5, '\0');
+	String s2 = String::with_capacity(7);
+	safe_swap(&mut s1, &mut s2);
+}
+
+int main() {
+    test1();
+    return 0;
+}

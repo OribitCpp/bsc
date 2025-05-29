@@ -1,0 +1,123 @@
+#ifndef BISHENG_C_SAFETY_CELL_H
+#define BISHENG_C_SAFETY_CELL_H
+
+#include "option.hbs"
+#include <bsc_type_traits.hbs>
+
+// Cell should be used for copyable type.
+struct Cell<T> {
+    T value;
+};
+
+safe Cell<T> Cell<T>::new(T value) {
+    _Static_assert(is_move_semantic<T>() == false, "Cell can only be used for copyable type.");
+    Cell<T> cell = { .value = value };
+    return cell;
+}
+
+// Return a copy of the contained value,
+// Here T should not be owned type, because borrow type cannot move ownership.
+safe T Cell<T>::get(const This * borrow this) {
+    _Static_assert(is_move_semantic<T>() == false, "Cell can only be used for copyable type.");
+    return this->value;
+}
+
+// Replace the contained value by val.
+safe void Cell<T>::set(const This * borrow this, T val) {
+    _Static_assert(is_move_semantic<T>() == false, "Cell can only be used for copyable type.");
+    unsafe {
+        Cell<T> * borrow p = (Cell<T> * borrow)this;
+        p->value = val;
+    }
+}
+
+owned struct RefCell<T> {
+public:
+    Cell<int> borrow_count;
+    T value;
+};
+
+safe RefCell<T> RefCell<T>::new(T value) {
+    Cell<int> borrow_count = Cell<int>::new(0);
+    RefCell<T> refcell = { .borrow_count = borrow_count, .value = value };
+    return refcell;
+}
+
+owned struct RefImmut<T> {
+public:
+    RefCell<T> * ptr;
+
+    ~RefImmut(RefImmut<T> this) {
+        int b = this.ptr->borrow_count.get();
+        this.ptr->borrow_count.set(b - 1);
+    }
+};
+
+safe const T* borrow RefImmut<T>::deref(const This* borrow this) {
+    unsafe {
+        return &const this->ptr->value;
+    }
+}
+
+owned struct RefMut<T> {
+public:
+    RefCell<T> * ptr;
+
+    ~RefMut(RefMut<T> this) {
+        int b = this.ptr->borrow_count.get();
+        this.ptr->borrow_count.set(b + 1);
+    }
+};
+
+safe T* borrow RefMut<T>::deref(This* borrow this) {
+    unsafe {
+        return &mut this->ptr->value;
+    }
+}
+
+safe Option<RefImmut<T>> RefCell<T>::try_borrow_immut(const This* borrow this) {
+    unsafe {
+        int b = this->borrow_count.get();
+        if (b >= 0) {
+            this->borrow_count.set(b + 1);
+            RefImmut<T> ref = { .ptr = (RefCell<T> *)this };
+            Option<RefImmut<T>> option_ref = Option<RefImmut<T>>::Some(ref);
+            return option_ref;
+        } else {
+            Option<RefImmut<T>> option_none = Option<RefImmut<T>>::None();
+            return option_none;
+        }
+    }
+}
+
+safe RefImmut<T> RefCell<T>::borrow_immut(const This* borrow this) {
+    Option<RefImmut<T>> option_ref = this->try_borrow_immut();
+    if (option_ref.is_none())
+        bsc_refcell_immut_borrow_failed();
+    RefImmut<T> ref = option_unwrap(option_ref);
+    return ref;
+}
+
+safe Option<RefMut<T>> RefCell<T>::try_borrow_mut(const This* borrow this) {
+    unsafe {
+        int b = this->borrow_count.get();
+        if (b == 0) {
+            this->borrow_count.set(-1);
+            RefMut<T> ref = { .ptr = (RefCell<T> *)this };
+            Option<RefMut<T>> option_ref = Option<RefMut<T>>::Some(ref);
+            return option_ref;
+        } else {
+            Option<RefMut<T>> option_none = Option<RefMut<T>>::None();
+            return option_none;
+        }
+    }
+}
+
+safe RefMut<T> RefCell<T>::borrow_mut(const This* borrow this) {
+    Option<RefMut<T>> option_ref = this->try_borrow_mut();
+    if (option_ref.is_none())
+        bsc_refcell_mut_borrow_failed();
+    RefMut<T> ref = option_unwrap(option_ref);
+    return ref;
+}
+#endif

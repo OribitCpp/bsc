@@ -1,0 +1,128 @@
+#ifndef BISHENG_C_SAFETY_RC_H
+#define BISHENG_C_SAFETY_RC_H
+
+#include "option.hbs"
+#include <bsc_type_traits.hbs>
+struct RcData<T> {
+    T data;
+    unsigned strong_count;
+    unsigned weak_count;
+};
+
+owned struct Rc<T> {
+public:
+    RcData<T> * ptr;
+
+    ~Rc(Rc<T> this) {
+        if (this.ptr) {
+            this.ptr->strong_count--;
+            if (this.ptr->strong_count == 0) {
+                _BSC_UNUSED T temp = this.ptr->data;  // BSC cannot call destructor explicitly, so make a copy of `data` to call destructor.
+                if (this.ptr->weak_count == 0)
+                    free((void*)this.ptr);
+            }
+        }
+    }
+};
+
+safe Rc<T> Rc<T>::new(T data) {
+    _Static_assert(is_move_semantic<T>() == false || is_owned_struct<T>() == true,
+                    "Can only instantiate Rc with owned struct or copyable type, "
+				   	"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap T with an owned struct.");
+    unsafe {
+        struct RcData<T> * RcDataPtr = (struct RcData<T> *)malloc(sizeof(struct RcData<T>));
+        RcDataPtr->data = data;
+        RcDataPtr->strong_count = 1;
+        RcDataPtr->weak_count = 0;
+        Rc<T> rc = { .ptr = RcDataPtr };
+        return rc;
+    }
+}
+
+safe Rc<T> Rc<T>::clone(const This * borrow this) {
+    unsafe {
+        Rc<T> rc = { .ptr = this->ptr };
+        rc.ptr->strong_count++;
+        return rc;
+    }
+}
+
+safe unsigned Rc<T>::strong_ref_count(const This * borrow this) {
+    unsafe {
+        return this->ptr->strong_count;
+    }
+}
+
+safe unsigned Rc<T>::weak_ref_count(const This * borrow this) {
+    unsafe {
+        return this->ptr->weak_count;
+    }
+}
+
+safe const T * borrow Rc<T>::deref(const This * borrow this) {
+    unsafe {
+        return &const this->ptr->data;
+    }
+}
+
+owned struct Weak<T> {
+public:
+    RcData<T> * ptr;
+
+    ~Weak(Weak<T> this) {
+        if (this.ptr) {
+            this.ptr->weak_count--;
+            if (this.ptr->strong_count == 0 && this.ptr->weak_count == 0)
+                free((void*)this.ptr);
+        }
+    }
+};
+
+// Create a Weak ptr from a Rc.
+safe Weak<T> Weak<T>::new(const Rc<T> * borrow rc) {
+    unsafe {
+        Weak<T> weak = { .ptr = rc->ptr };
+        weak.ptr->weak_count++;
+        return weak;
+    }
+}
+
+// Clone a Weak ptr. 
+safe Weak<T> Weak<T>::clone(const This * borrow this) {
+    unsafe {
+        Weak<T> weak = { .ptr = this->ptr };
+        weak.ptr->weak_count++;
+        return weak;
+    }
+}
+
+safe unsigned Weak<T>::strong_ref_count(const This * borrow this) {
+    unsafe {
+        return this->ptr->strong_count;
+    }
+}
+
+safe unsigned Weak<T>::weak_ref_count(const This * borrow this) {
+    unsafe {
+        if (this->ptr->strong_count > 0)
+            return this->ptr->weak_count;
+        return 0;
+    }
+}
+
+safe Option<Rc<T>> Weak<T>::upgrade(const This * borrow this) {
+    // If `strong_count == 0`, this Weak cannot upgrade to a Rc, return None.
+    if (this->strong_ref_count() == 0) {
+        Option<Rc<T>> option_rc_none = Option<Rc<T> >::None();
+        return option_rc_none;
+    } else {
+        unsafe {
+            Rc<T> rc = { .ptr = this->ptr };
+            rc.ptr->strong_count++;
+            Option<Rc<T>> option_rc_some = Option<Rc<T> >::Some(rc);
+            return option_rc_some;
+        }
+    }
+}
+#endif

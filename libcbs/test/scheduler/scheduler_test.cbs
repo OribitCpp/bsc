@@ -1,0 +1,46 @@
+#include <unistd.h>
+#include "scheduler.hbs"
+
+atomic_int g_task_num = 200;
+
+void isComplete() {
+    atomic_fetch_sub(&g_task_num, 1);
+    if (atomic_load(&g_task_num) == 0) {
+        struct Scheduler::destroy();
+    }
+}
+
+async void work() {
+    int a = 0;
+    while (a < 100000000)
+    {
+        a++;
+    }
+
+    isComplete();
+}
+
+async void sleep_s(int time) {
+    usleep(time);
+}
+
+async void taskFunc(int i) {
+    printf("Task %d is running\n", i);
+    await sleep_s(1000);
+    // Task allocation to the queue of the current thread
+    struct Scheduler::spawn(work());
+    printf("Task %d is done\n", i);
+
+    isComplete();
+}
+
+int main() {
+    struct Scheduler::init(4);
+    // Task allocation to the global queue
+    for (int i = 0; i < 100; i++) {
+        struct Scheduler::spawn(taskFunc(i));
+    }
+    struct Scheduler::run();
+    return 0;
+}
+

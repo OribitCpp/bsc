@@ -1,0 +1,264 @@
+#ifndef BISHENG_C_SAFETY_HASH_MAP_H
+#define BISHENG_C_SAFETY_HASH_MAP_H
+
+#include "raw_table.hbs"
+#include "sip.hbs"
+#include <bsc_type_traits.hbs>
+
+// A hash map implemented with linear probing.
+//
+// By default, `HashMap` uses a hashing algorithm selected to provide
+// resistance against HashDoS attacks. The algorithm is randomly seeded, and a
+// reasonable best-effort is made to generate this seed from a high quality,
+// secure source of randomness provided by the host without blocking the
+// program.
+//
+// It is required that the keys implement the `equals` and `hash` functions.
+// We have implemented them for all built-in types. For other types, you have
+// to implment these yourself, and it is important that the following
+// property holds:
+//
+// `k1 == k2 -> hash(k1) == hash(k2)`
+//
+// In other words, if two keys are equal, their hashes must be equal.
+// Violating this property is a logic error.
+owned struct HashMap<K, V, S> {
+// FIXME: makes it private
+public:
+    S hash_builder;
+    RawTable<K, V> table;
+
+    ~HashMap(HashMap<K, V, S> this) {
+        // AUTO INSERT: ~RawTable(this.table)
+    }
+};
+
+// Returns the number of elements the map can hold without reallocating.
+//
+// This number is a lower bound; the `HashMap<K, V, S>` might be able to hold
+// more, but is guaranteed to be able to hold at least this many.
+safe size_t HashMap<K, V, S>::capacity(const HashMap<K, V, S>* borrow this) {
+    return this->table.capacity();
+}
+
+// Removes all elements from the table without freeing the backing memory.
+safe void HashMap<K, V, S>::clear(HashMap<K, V, S>* borrow this) {
+    if (this->table.is_empty()) {
+        return;
+    }
+    this->table.clear();
+    return;
+}
+
+safe _Bool HashMap<K, V, S>::contains_key(const HashMap<K, V, S>* borrow this, const K* borrow k) {
+    if (this->table.is_empty()) {
+        return 0;
+    }
+
+    unsafe {
+        S hash_builder = this->hash_builder;
+        uint64_t hash = k->hash(&mut hash_builder);
+        Option<size_t> option = this->table.find(hash, k);
+        _Bool result = option.is_some();
+        // AUTO INSERT: ~Option(option)
+        return result;
+    }
+}
+
+// FIXME: we find a type conversion bug which makes this function work incorrectly.
+// Returns a reference to the value corresponding to the key.
+//
+// The key may be any borrowed form of the map's key type,
+// but `hash` and `equals` on the borrowed form must match those for the key type.
+// safe Option<const V* borrow> HashMap<K, V, S>::get(const HashMap<K, V, S>* borrow this, const K* borrow k) {
+//     unsafe {
+//         S hash_builder = this->hash_builder;
+//         uint64_t hash = k->hash(&mut hash_builder);
+//         Option<size_t> option = this->table.find(hash, k);
+//         if (option.is_some()) {
+//             size_t index = option_unwrap<size_t>(option);
+//             const V* borrow val = &const *(this->table.values + index);
+//             return Option<const V* borrow>::Some(val);
+//         } else {
+//             // AUTO INSERT: ~Option(option)
+//             return Option<const V* borrow>::None();
+//         }
+//     }
+// }
+
+// Returns a mutable reference to the value corresponding to the key.
+//
+// The key may be any borrowed form of the map's key type,
+// but `hash` and `equals` on the borrowed form must match those for the key type.
+safe Option<V* borrow> HashMap<K, V, S>::get_mut(HashMap<K, V, S>* borrow this, const K* borrow k) {
+    unsafe {
+        S hash_builder = this->hash_builder;
+        uint64_t hash = k->hash(&mut hash_builder);
+        Option<size_t> option = this->table.find(hash, k);
+        if (option.is_some()) {
+            size_t index = option_unwrap<size_t>(option);
+            V* borrow val = &mut *(this->table.values + index);
+            return Option<V* borrow>::Some(val);
+        } else {
+            // AUTO INSERT: ~Option(option)
+            return Option<V* borrow>::None();
+        }
+    }
+}
+
+// Reserves capacity for at least `additional` more elements to be inserted
+// in the `HashMap`.
+//
+// The collection may reserve more space to speculatively
+// avoid frequent reallocations. After calling `reserve`,
+// capacity will be greater than or equal to `this.length() + additional`.
+// Does nothing if capacity is already sufficient.
+safe void HashMap<K, V, S>::reserve(HashMap<K, V, S>* borrow this, size_t additional) {
+    if (additional > this->table.growth_left) {
+        // Conservatively resize to at least the next size up
+        // to avoid churning deletes into frequent rehashes.
+
+        if (additional > SIZE_MAX - this->table.items) {
+            unsafe {
+                bsc_overflow_handler();
+            }
+        }
+        // calculate the new capacity for reserve
+        size_t new_items = this->table.items + additional;
+        size_t full_capacity = bucket_mask_to_capacity(this->table.bucket_mask);
+        size_t new_capacity = (new_items > (full_capacity + 1)) ? new_items : (full_capacity + 1);
+
+        // create a new hashmap
+        RawTable<K, V> new_rt = RawTable<K, V>::with_capacity(new_capacity);
+        S hash_builder = this->hash_builder;
+        HashMap<K, V, S> new_hm = {
+            .hash_builder = hash_builder,
+            .table = new_rt
+        };
+
+        // traverse the origin hashmap and insert entries into the new hashmap
+        if (this->table.bucket_mask != 0) {
+            unsafe {
+                for (size_t index = 0; index < this->table.bucket_mask + 1; index += 1) {
+                    if (*(this->table.ctrl + index) != EMPTY &&
+                        *(this->table.ctrl + index) != DELETED) {
+                        K key = this->table.keys[index];
+                        V value = this->table.values[index];
+                        // set the ctrl byte to `EMPTY`
+                        *(this->table.ctrl + index) = EMPTY;
+
+                        // insert key and value into new_hm
+                        uint64_t hash = key.hash(&mut hash_builder);
+                        Result<size_t, size_t> result = new_hm.table.find_or_find_insert_slot(hash, &const key);
+                        if (result.is_err()) {
+                            size_t slot = result_unwrap_err<size_t, size_t>(result);
+                            new_hm.table.insert_in_slot(slot, hash, key, value);
+                        }
+                        // AUTO INSERT: ~Result(result)
+                    }
+                }
+            }
+        }
+
+        safe_swap(this, &mut new_hm);
+        // AUTO INSERT: ~HashMap(new_hm)
+    }
+}
+
+// Inserts a key-value pair into the map.
+//
+// If the map did not have this key present, `None` is returned.
+//
+// If the map did have this key present, the value is updated, and the old
+// value is returned.
+//
+// This function may resize the table if additional space is required for
+// inserting an element.
+safe Option<V> HashMap<K, V, S>::insert(HashMap<K, V, S>* borrow this, K k, V v) {
+    this->reserve(1);
+
+    S hash_builder = this->hash_builder;
+    unsafe {
+        uint64_t hash = k.hash(&mut hash_builder);
+        Result<size_t, size_t> result = this->table.find_or_find_insert_slot(hash, &const k);
+        if (result.is_ok()) {
+            size_t index = result_unwrap<size_t, size_t>(result);
+            unsafe {
+                V old = *(this->table.values + index);
+                *(this->table.values + index) = v;
+                // IF(`K` isa owned struct type) AUTO INSERT: ~K(k)
+                return Option<V>::Some(old);
+            }
+        } else {
+            size_t slot = result_unwrap_err<size_t, size_t>(result);
+            this->table.insert_in_slot(slot, hash, k, v);
+            return Option<V>::None();
+        }
+    }
+}
+
+// Returns `true` if the map contains no elements.
+safe _Bool HashMap<K, V, S>::is_empty(const HashMap<K, V, S>* borrow this) {
+    return this->table.is_empty();
+}
+
+// Returns the number of elements in the map.
+safe size_t HashMap<K, V, S>::length(const HashMap<K, V, S>* borrow this) {
+    return this->table.length();
+}
+
+// Removes a key from the map, returning the value at the key if the key
+// was previously in the map. Keeps the allocated memory for reuse.
+safe Option<V> HashMap<K, V, S>::remove(HashMap<K, V, S>* borrow this, const K* borrow k) {
+    unsafe {
+        S hash_builder = this->hash_builder;
+        uint64_t hash = k->hash(&mut hash_builder);
+        Option<V> result = this->table.remove_entry(hash, k);
+        return result;
+    }
+}
+
+// Creates an empty `HashMap` with the specified capacity, using `hash_builder`
+// to hash the keys.
+//
+// The hash map will be able to hold at least `cap` elements without
+// reallocating. If `cap` is 0, the hash map will not allocate.
+safe HashMap<K, V, S> HashMap<K, V, S>::with_capacity_and_hasher(size_t cap, S hash_builder) {
+    _Static_assert(is_move_semantic<K>() == false || is_owned_struct<K>() == true,
+                    "Can only instantiate HashMap with owned struct or copyable type, "
+				   	"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap K with an owned struct.");
+    _Static_assert(is_move_semantic<V>() == false || is_owned_struct<V>() == true,
+                    "Can only instantiate HashMap with owned struct or copyable type, "
+				   	"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap V with an owned struct.");
+    RawTable<K, V> rt = RawTable<K, V>::with_capacity(cap);
+    HashMap<K, V, S> hm = {
+        .hash_builder = hash_builder,
+        .table = rt
+    };
+    return hm;
+}
+
+// Creates an empty `HashMap`, using `hash_builder` to hash the keys.
+//
+// The hash map is initially created with a capacity of 0,
+// so it will not allocate until it is first inserted into.
+safe HashMap<K, V, S> HashMap<K, V, S>::with_hasher(S hash_builder) {
+    _Static_assert(is_move_semantic<K>() == false || is_owned_struct<K>() == true,
+                    "Can only instantiate HashMap with owned struct or copyable type, "
+				   	"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap K with an owned struct.");
+    _Static_assert(is_move_semantic<V>() == false || is_owned_struct<V>() == true,
+                    "Can only instantiate HashMap with owned struct or copyable type, "
+				   	"because BSC doesn't know how to free memory for other types. "
+					"Fix: You can wrap V with an owned struct.");
+    RawTable<K, V> rt = RawTable<K, V>::new();
+    HashMap<K, V, S> hm = {
+        .hash_builder = hash_builder,
+        .table = rt
+    };
+    return hm;
+}
+
+#endif

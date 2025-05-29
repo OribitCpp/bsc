@@ -1,0 +1,55 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include "rc.hbs"
+#include "assert.h"
+
+void rc_deref_1() {
+    Rc<int> rc1 = Rc<int>::new(5);
+    assert(*(rc1.deref()) == 5);
+
+    Weak<int> weak = Weak<int>::new(&const rc1);
+    Option<Rc<int>> option_rc2 = weak.upgrade();
+    if (option_rc2.is_some()) {
+        Rc<int> rc2 = option_unwrap<Rc<int>>(option_rc2);
+        assert(*(rc2.deref()) == 5);
+
+        Rc<int> rc3 = rc2.clone();
+        assert(*(rc3.deref()) == 5);
+    }
+}
+
+owned struct A {
+public:
+    int *owned p;
+    ~A(A this) {
+        free((void*)this.p);
+    }
+};
+
+void rc_deref_2() {
+    int *owned p = (int *owned)(void *owned)malloc(sizeof(int));
+    *p = 5;
+    A a = { .p = p };
+
+    Rc<A> rc1 = Rc<A>::new(a);
+    assert(*(rc1.deref()->p) == 5);
+
+    Weak<A> weak = Weak<A>::new(&const rc1);
+    Option<Rc<A>> option_rc2 = weak.upgrade();
+    if (option_rc2.is_some()) {
+        Rc<A> rc2 = option_unwrap<Rc<A>>(option_rc2);
+        assert(*(rc2.deref()->p) == 5);
+
+        Rc<A> rc3 = rc2.clone();
+        assert(*(rc3.deref()->p) == 5);
+    }
+}
+
+int main() {
+    rc_deref_1();
+    rc_deref_2();
+    return 0;
+}

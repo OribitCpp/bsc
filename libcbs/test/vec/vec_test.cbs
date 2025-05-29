@@ -1,0 +1,55 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include <assert.h>
+#include "vec.hbs"
+
+void test1() {
+	Vec<int> v1 = Vec<int>::new();
+	v1.set(0, 2);
+	int x1 = v1.remove(0);
+	assert(x1 == 2);
+	v1.push(5);
+	int x2 = v1.pop();
+	assert(x2 == 5);
+	_Bool flag = v1.is_empty();
+	assert(flag == 1);
+	size_t length = v1.length();
+	assert(length == 0);
+	_BSC_UNUSED size_t cap = v1.capacity();
+
+	v1.clear();
+	Vec<int> v2 = Vec<int>::with_capacity(10);
+	v2.shrink_to_fit();
+	v2.push(3.2);
+	v2.set(1, 2);
+	v2.pop();
+	v2.clear();
+}
+
+void test2() {
+	Vec<int> v1 = Vec<int>::new();
+	v1.set(0, 2);
+	v1.push(5);
+	Vec<int> v2 = Vec<int>::with_capacity(10);
+	v2.shrink_to_fit();
+	v2.push(3.2);
+	v2.set(1, 2);
+	v2.push(526);
+	v2.push(64);
+	safe_swap(&mut v1, &mut v2);
+	assert(*v1.get(0) == 3);
+	assert(*v1.get(1) == 2);
+	assert(*v1.get(2) == 526);
+	assert(*v1.get(3) == 64);
+	assert(*v2.get(0) == 2);
+	assert(*v2.get(1) == 5);
+}
+
+int main() {
+    test1();
+	test2();
+    return 0;
+}

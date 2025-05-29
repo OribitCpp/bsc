@@ -1,0 +1,5 @@
+function(get_fq_target_name local_name target_name_var)
+  file(RELATIVE_PATH rel_path ${LIBCBS_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+  string(REPLACE "/" "." fq_name "libcbs.${rel_path}.${local_name}")
+  set(${target_name_var} ${fq_name} PARENT_SCOPE)
+endfunction(get_fq_target_name)

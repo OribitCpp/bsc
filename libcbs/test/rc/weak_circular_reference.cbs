@@ -1,0 +1,39 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include "rc.hbs"
+#include "cell.hbs"
+
+owned struct B;
+
+owned struct A {
+public:
+    int value;
+    RefCell<Rc<B>> c;
+};
+
+owned struct B {
+public:
+    int value;
+    RefCell<Weak<A>> d;
+};
+
+void test() {
+    B b = { .value = 5 };
+    Rc<B> bp = Rc<B>::new(b);
+
+    A a = { .value = 10 };
+    RefMut<Rc<B>> rm_a_b = a.c.borrow_mut();
+    *(rm_a_b.deref()) = bp.clone();
+    Rc<A> ap = Rc<A>::new(a);
+	
+    RefMut<Weak<A>> rm_b_a = bp.deref()->d.borrow_mut();
+    *(rm_b_a.deref()) = Weak<A>::new(&const ap);
+}
+
+int main() {
+    test();
+    return 0;
+}

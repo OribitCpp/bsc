@@ -1,0 +1,109 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include "cell.hbs"
+#include <assert.h>
+
+struct B {
+    int a;
+};
+
+void test_deref1() {
+    struct B b = { .a = 5 };
+    RefCell<struct B> refcell = RefCell<struct B>::new(b);
+    RefMut<struct B> rm = refcell.borrow_mut();
+    assert(rm.deref()->a == 5);
+    rm.deref()->a = 10;
+    assert(rm.deref()->a == 10);
+}
+
+void test_deref2() {
+    struct B b = { .a = 5 };
+    RefCell<struct B> refcell = RefCell<struct B>::new(b);
+    {
+        RefMut<struct B> rm = refcell.borrow_mut();
+        assert(rm.deref()->a == 5);
+        rm.deref()->a = 10;
+        assert(rm.deref()->a == 10);
+    }
+    RefImmut<struct B> rm1 = refcell.borrow_immut();
+    assert(rm1.deref()->a == 10);
+}
+
+owned struct A {
+public:
+    int a;
+};
+
+void test_deref3() {
+    A a = { .a = 5 };
+    RefCell<A> refcell = RefCell<A>::new(a);
+    RefMut<A> rm = refcell.borrow_mut();
+    assert(rm.deref()->a == 5);
+    rm.deref()->a = 10;
+    assert(rm.deref()->a == 10);
+}
+
+void test_deref4() {
+    A a = { .a = 5 };
+    RefCell<A> refcell = RefCell<A>::new(a);
+    {
+        RefMut<A> rm = refcell.borrow_mut();
+        assert(rm.deref()->a == 5);
+        rm.deref()->a = 10;
+        assert(rm.deref()->a == 10);
+    }
+    RefImmut<A> rm1 = refcell.borrow_immut();
+    assert(rm1.deref()->a == 10);
+}
+
+void test_deref5() {
+    A a = { .a = 5 };
+    RefCell<A> refcell = RefCell<A>::new(a);
+    {
+        RefImmut<A> rm1 = refcell.borrow_immut();
+        _BSC_UNUSED const A *borrow p1 = rm1.deref();
+    }
+    {
+        RefMut<A> rm = refcell.borrow_mut();
+        rm.deref()->a = 10;
+        assert(rm.deref()->a == 10);
+    }
+    RefImmut<A> rm2 = refcell.borrow_immut();
+    assert(rm2.deref()->a == 10);
+    RefImmut<A> rm3 = refcell.borrow_immut();
+    assert(rm3.deref()->a == 10);
+}
+
+void test_deref6() {
+    A a = { .a = 5 };
+    RefCell<A> refcell = RefCell<A>::new(a);
+    Option<RefMut<A>> option_rm = refcell.try_borrow_mut();
+    assert(option_rm.is_some());
+    if (option_rm.is_some()) {
+        RefMut<A> rm = option_unwrap<RefMut<A>>(option_rm);
+        assert(rm.deref()->a == 5);
+        rm.deref()->a = 10;
+        assert(rm.deref()->a == 10);
+    }
+    Option<RefImmut<A>> option_rm2 = refcell.try_borrow_immut();
+    assert(option_rm2.is_some());
+    if (option_rm2.is_some()) {
+        RefImmut<A> rm2 = option_unwrap<RefImmut<A>>(option_rm2);
+        assert(rm2.deref()->a == 10);
+    }
+    RefImmut<A> rm3 = refcell.borrow_immut();
+    assert(rm3.deref()->a == 10);
+}
+
+int main() {
+    test_deref1();
+    test_deref2();
+    test_deref3();
+    test_deref4();
+    test_deref5();
+    test_deref6();
+    return 0;
+}

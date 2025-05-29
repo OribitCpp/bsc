@@ -1,0 +1,119 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include "rc.hbs"
+#include "assert.h"
+
+owned struct A {
+public:
+    int *owned p;
+    ~A(A this) {
+        free((void*)this.p);
+    }
+};
+
+void rc_ref_count_check_1() {
+    int *owned p = (int *owned)(void *owned)malloc(sizeof(int));
+    *p = 5;
+    A a = { .p = p };
+
+    Rc<A> rc1 = Rc<A>::new(a);
+    assert(rc1.strong_ref_count() == 1);
+    assert(rc1.weak_ref_count() == 0);
+
+    Rc<A> rc2 = rc1.clone();
+    assert(rc1.strong_ref_count() == 2);
+    assert(rc1.weak_ref_count() == 0);
+    assert(rc2.strong_ref_count() == 2);
+    assert(rc2.weak_ref_count() == 0);
+    {
+        Rc<A> rc3 = rc2.clone();
+        assert(rc1.strong_ref_count() == 3);
+        assert(rc1.weak_ref_count() == 0);
+        assert(rc2.strong_ref_count() == 3);
+        assert(rc2.weak_ref_count() == 0);
+        assert(rc3.strong_ref_count() == 3);
+        assert(rc3.weak_ref_count() == 0);
+    }
+    assert(rc1.strong_ref_count() == 2);
+    assert(rc1.weak_ref_count() == 0);
+    assert(rc2.strong_ref_count() == 2);
+    assert(rc2.weak_ref_count() == 0);
+}
+
+void rc_ref_count_check_2() {
+    int *owned p = (int *owned)(void *owned)malloc(sizeof(int));
+    *p = 5;
+    A a = { .p = p };
+
+    Rc<A> rc1 = Rc<A>::new(a);
+    assert(rc1.strong_ref_count() == 1);
+    assert(rc1.weak_ref_count() == 0);
+
+    int b = 5;
+    while (b > 0) {
+        Rc<A> rc2 = rc1.clone();
+        assert(rc1.strong_ref_count() == 2);
+        assert(rc1.weak_ref_count() == 0);
+        assert(rc2.strong_ref_count() == 2);
+        assert(rc2.weak_ref_count() == 0);
+        b--;
+        if (b == 3) {
+            Rc<A> rc3 = rc2.clone();
+            assert(rc1.strong_ref_count() == 3);
+            assert(rc1.weak_ref_count() == 0);
+            assert(rc2.strong_ref_count() == 3);
+            assert(rc2.weak_ref_count() == 0);
+            assert(rc3.strong_ref_count() == 3);
+            assert(rc3.weak_ref_count() == 0);
+        }
+    }
+    assert(rc1.strong_ref_count() == 1);
+    assert(rc1.weak_ref_count() == 0);
+}
+
+void weak_ref_count_check() {
+    int *owned p = (int *owned)(void *owned)malloc(sizeof(int));
+    *p = 5;
+    A a = { .p = p };
+
+    Rc<A> rc = Rc<A>::new(a);
+    Weak<A> weak1 = Weak<A>::new(&const rc);
+	
+    assert(rc.strong_ref_count() == 1);
+    assert(rc.weak_ref_count() == 1);
+    assert(weak1.strong_ref_count() == 1);
+    assert(weak1.weak_ref_count() == 1);
+    {
+        Weak<A> weak2 = Weak<A>::new(&const rc);
+        assert(rc.strong_ref_count() == 1);
+        assert(rc.weak_ref_count() == 2);
+        assert(weak1.strong_ref_count() == 1);
+        assert(weak1.weak_ref_count() == 2);
+        assert(weak2.strong_ref_count() == 1);
+        assert(weak2.weak_ref_count() == 2);
+
+        Weak<A> weak3 = weak2.clone();
+        assert(rc.strong_ref_count() == 1);
+        assert(rc.weak_ref_count() == 3);
+        assert(weak1.strong_ref_count() == 1);
+        assert(weak1.weak_ref_count() == 3);
+        assert(weak2.strong_ref_count() == 1);
+        assert(weak2.weak_ref_count() == 3);
+        assert(weak3.strong_ref_count() == 1);
+        assert(weak3.weak_ref_count() == 3);
+    }
+    assert(rc.strong_ref_count() == 1);
+    assert(rc.weak_ref_count() == 1);
+    assert(weak1.strong_ref_count() == 1);
+    assert(weak1.weak_ref_count() == 1);
+}
+
+int main() {
+    rc_ref_count_check_1();	
+    rc_ref_count_check_2();
+    weak_ref_count_check();
+    return 0;
+}

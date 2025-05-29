@@ -1,0 +1,97 @@
+// Always enable asserts.
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include "rc.hbs"
+#include "assert.h"
+
+owned struct P {
+public:
+    int *owned k;
+    ~P(P this) {
+        free((void*)this.k);
+    }
+};
+
+owned struct S {
+public:
+    int id;
+    Rc<P> p;
+};
+void test1() {
+    int *owned k = (int *owned)(void *owned)malloc(sizeof(int));
+    *k = 5;
+    P p = { .k = k };
+    Rc<P> rc = Rc<P>::new(p);
+    S s1 = { .id = 1, .p = rc.clone() };
+    S s2 = { .id = 2, .p = s1.p.clone() };
+    assert(*(s1.p.deref()->k) == 5);
+    assert(*(s2.p.deref()->k) == 5);
+    assert(rc.strong_ref_count() == 3);
+    {
+        S s3 = { .id = 3, .p = s2.p.clone() };
+        S s4 = { .id = 4, .p = rc };
+        assert(*(s3.p.deref()->k) == 5);
+        assert(*(s4.p.deref()->k) == 5);
+        assert(s3.p.strong_ref_count() == 4);
+        assert(s4.p.strong_ref_count() == 4);
+        assert(s1.p.strong_ref_count() == 4);
+        assert(s2.p.strong_ref_count() == 4);
+    }
+    assert(s1.p.strong_ref_count() == 2);
+    assert(s2.p.strong_ref_count() == 2);
+}
+
+owned struct W {
+public:
+    int id;
+    Weak<P> p;
+};
+
+void test2() {
+    int *owned k = (int *owned)(void *owned)malloc(sizeof(int));
+    *k = 5;
+    P p = { .k = k };
+
+    Rc<P> rc = Rc<P>::new(p);
+    W w1 = { .id = 1, .p = Weak<P>::new(&const rc) };
+    assert(rc.strong_ref_count() == 1);
+    assert(rc.weak_ref_count() == 1);
+    assert(w1.p.strong_ref_count() == 1);
+    assert(w1.p.weak_ref_count() == 1);
+    {
+        W w2 = { .id = 2, .p = w1.p.clone() };
+        assert(rc.strong_ref_count() == 1);
+        assert(rc.weak_ref_count() == 2);
+        assert(w1.p.strong_ref_count() == 1);
+        assert(w1.p.weak_ref_count() == 2);
+        assert(w2.p.strong_ref_count() == 1);
+        assert(w2.p.weak_ref_count() == 2);
+
+        Option<Rc<P>> option_rc_w2 = w2.p.upgrade();
+        if (option_rc_w2.is_some()) {
+            Rc<P> rc_w2 = option_unwrap<Rc<P>>(option_rc_w2);
+            S s1 = { .id = 1, .p = rc_w2 };
+            assert(*(s1.p.deref()->k) == 5);
+            assert(rc.strong_ref_count() == 2);
+            assert(rc.weak_ref_count() == 2);
+            assert(w1.p.strong_ref_count() == 2);
+            assert(w1.p.weak_ref_count() == 2);
+            assert(w2.p.strong_ref_count() == 2);
+            assert(w2.p.weak_ref_count() == 2);
+            assert(s1.p.strong_ref_count() == 2);
+            assert(s1.p.weak_ref_count() == 2);
+        }
+    }
+    assert(rc.strong_ref_count() == 1);
+    assert(rc.weak_ref_count() == 1);
+    assert(w1.p.strong_ref_count() == 1);
+    assert(w1.p.weak_ref_count() == 1);
+}
+
+int main() {
+    test1();
+    test2();
+    return 0;
+}

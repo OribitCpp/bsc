@@ -1,0 +1,26 @@
+#include "list.hbs"
+
+typedef link_int = LinkedList<int>;
+int main() {
+    link_int a = link_int::new();
+    for (int i = 0; i < 10; i = i + 1) {
+        a.push_back(i);
+    }
+    link_int b = link_int::new();
+    for (int i = 0; i < 10; i = i + 1) {
+        b.push_back(i);
+    }
+    link_int c = link_int::new();
+    for (int i = 0; i < 10; i = i + 1) {
+        c.push_back(i);
+    }
+    LinkedList<link_int> l = LinkedList<link_int>::new();
+    l.push_back(a);
+    l.push_back(b);
+    l.push_back(c);
+    __attribute__((unused)) link_int ele = l.pop_back();
+    if (l.length() == 2) {
+        return 0;
+    }
+    return 1;
+}
