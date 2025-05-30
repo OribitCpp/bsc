@@ -1,4 +1,5 @@
 # The LLVM Compiler Infrastructure
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/OribitCpp/bsc)
 
 This directory and its sub-directories contain the source code for LLVM,
 a toolkit for the construction of highly optimized compilers,
