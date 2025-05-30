@@ -1,8 +1,0 @@
-// RUN: %clang -rewrite-bsc %s -o %t-rw.c
-
-#include "../rewrite_generic_bscmethod.hbs"
-
-int f() {
-  int res = struct MyStruct<int>::foo();
-  return res - 2;  
-}

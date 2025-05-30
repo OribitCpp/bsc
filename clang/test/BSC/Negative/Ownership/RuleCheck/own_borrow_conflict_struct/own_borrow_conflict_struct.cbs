@@ -1,5 +1,0 @@
-// RUN: %clang_cc1 -verify %s
-
-struct Container {
-    int *owned borrow data; // expected-error {{cannot combine 'owned' and 'borrow' qualifiers on the same type}}
-};

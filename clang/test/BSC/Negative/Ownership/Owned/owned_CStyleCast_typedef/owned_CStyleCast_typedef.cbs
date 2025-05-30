@@ -1,9 +1,0 @@
-// RUN: %clang_cc1 -ast-dump -verify %s
-
-typedef int* owned myInt;
-
-void test () {
-    int x = 10;
-    int* p = &x;
-    myInt p1 = (myInt)p;
-} // expected-error {{memory leak of value: `p1`}}

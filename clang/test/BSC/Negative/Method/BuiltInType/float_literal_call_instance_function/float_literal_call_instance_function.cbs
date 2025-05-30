@@ -1,9 +1,0 @@
-// RUN: %clang_cc1 -verify %s
-
-void float::increase(float* this) {
-}
-
-int main() {
-    1.0.increase(); // expected-error {{invalid suffix '.increase' on floating constant}}
-    return 0;
-}

@@ -1,5 +1,0 @@
-// %RUN: %clang_cc1 -verify %s
-
-void param(int * owned x) {
-	int * owned a = x;
-} // expected-error {{memory leak of value: `a`}}

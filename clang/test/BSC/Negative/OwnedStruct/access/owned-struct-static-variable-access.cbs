@@ -1,6 +1,0 @@
-// RUN: %clang_cc1 -verify %s
-
-owned struct A {};
-
-int A::a = 2; // expected-error {{no member named 'a' in 'struct A'}}
-

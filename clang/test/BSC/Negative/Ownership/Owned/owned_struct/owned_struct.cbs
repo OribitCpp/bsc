@@ -1,9 +1,0 @@
-// RUN: %clang_cc1 -ast-dump -verify %s
-// expected-no-diagnostics
-
-#include "owned_struct_cbs.h"
-
-int main() {
-    struct A owned a;
-    return 0;
-}

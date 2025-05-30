@@ -1,5 +1,0 @@
-
-enum E;
-int enum E::to_int(enum E* this) { // expected-error {{redefinition of 'to_int'}}
-  return (int)*this;
-}

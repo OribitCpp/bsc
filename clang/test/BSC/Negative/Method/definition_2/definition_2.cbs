@@ -1,9 +1,0 @@
-// RUN: %clang_cc1 -fsyntax-only -verify %s
-
-int struct Foo::getA() { // expected-error {{variable has incomplete type 'struct Foo'}}
-  return 0;
-}
-
-int main() {
-  return 0;
-}

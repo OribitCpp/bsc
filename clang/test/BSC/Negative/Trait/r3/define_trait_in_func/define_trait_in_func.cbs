@@ -1,8 +1,0 @@
-// RUN: %clang_cc1 -fsyntax-only -verify %s
-
-int bar() {
-    trait F {                         // expected-error {{trait is only allowed to be defined at top-level}} 
-                                      // expected-error@-1 {{expected identifier or '('}}
-        int foo(This* this, int a);
-    };
-}

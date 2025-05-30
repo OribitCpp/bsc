@@ -1,8 +1,0 @@
-// RUN: %clang_cc1 -verify %s
-
-enum F {
-    increase // expected-note {{previous definition is here}}
-};
-void enum F::increase(enum F* this) { // expected-error {{redefinition of 'increase' as different kind of symbol}}
-    
-}

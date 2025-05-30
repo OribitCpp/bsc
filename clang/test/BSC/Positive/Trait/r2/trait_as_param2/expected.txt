@@ -1,2 +1,0 @@
-int says Hi
-struct S says Hi

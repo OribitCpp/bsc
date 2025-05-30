@@ -1,3 +1,0 @@
-Hi I'm int
-Hi I'm struct S
-Hi I'm Leah

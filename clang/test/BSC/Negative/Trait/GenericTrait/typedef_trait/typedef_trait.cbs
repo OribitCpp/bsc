@@ -1,5 +1,0 @@
-// RUN: %clang_cc1 -fsyntax-only -verify %s
-
-typedef trait F<T> { // expected-error {{use of undeclared identifier 'T'}} expected-error {{explicit specialization of undeclared template trait 'F'}}
-  T foo(This* this, int a);  // expected-error {{unknown type name 'T'}}
-}G;

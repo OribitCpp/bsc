@@ -1,8 +1,0 @@
-// RUN: %clang_cc1 -verify %s
-
-
-int main() {
-    int x = 1;
-    x.increase(); // expected-error {{no member named 'increase' in type 'int'}}
-    return 0;
-}

@@ -1,4 +1,0 @@
-Generic Struct Works!
-a is 42
-Generic Function Works!
-b is 2023
